@@ -1,0 +1,19 @@
+{
+	"$schema": "https://docs.rome.tools/schemas/12.1.3/schema.json",
+	"organizeImports": {
+		"enabled": true
+	},
+	"files": {
+		"ignore": [".yarn", ".pnp.cjs", ".pnp.loader.mjs", "dist", "src-tauri"]
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"recommended": true,
+			"suspicious": {
+				"noExplicitAny": "off"
+			},
+			"style": { "noNonNullAssertion": "off" }
+		}
+	}
+}
