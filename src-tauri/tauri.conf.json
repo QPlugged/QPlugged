@@ -24,15 +24,24 @@
 			]
 		},
 		"security": {
-			"csp": null
+			"csp": null,
+			"assetProtocol": {
+				"enable": true,
+				"scope": ["**"]
+			}
 		},
 		"windows": [
 			{
+				"label": "main",
+				"transparent": true,
 				"fullscreen": false,
 				"resizable": true,
 				"title": "QPlugged",
 				"width": 800,
-				"height": 600
+				"height": 600,
+				"windowEffects":{
+					"effects": ["mica"]
+				}
 			}
 		]
 	},
