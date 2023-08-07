@@ -13,6 +13,9 @@
 			"suspicious": {
 				"noExplicitAny": "off"
 			},
+			"correctness": {
+				"noInvalidConstructorSuper": "off"
+			},
 			"style": { "noNonNullAssertion": "off" }
 		}
 	}

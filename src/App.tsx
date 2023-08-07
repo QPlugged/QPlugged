@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
-import { LoginImpl } from "./backend/login";
-import { InternalApi } from "./backend/api";
 import { Api, ApiContext } from "./Api";
+import { InternalApi } from "./backend/api";
+import { LoginImpl } from "./backend/login";
+import { MessagingImpl } from "./backend/messaging";
+import IndexPage from "./pages/index/IndexPage";
+import LoginPage from "./pages/login/LoginPage";
+import { MainPage } from "./pages/main/MainPage";
 import {
 	Alert,
 	Box,
@@ -12,9 +15,9 @@ import {
 	experimental_extendTheme,
 } from "@mui/material";
 import { zhCN } from "@mui/material/locale";
-import { Navigate, RouterProvider, createHashRouter } from "react-router-dom";
-import LoginPage from "./pages/login/LoginPage";
 import { LogicalSize, getCurrent } from "@tauri-apps/plugin-window";
+import { useEffect, useMemo, useState } from "react";
+import { Navigate, RouterProvider, createHashRouter } from "react-router-dom";
 
 const titleFontFamily =
 	"'Segoe UI Variable Display', 'Segoe UI Variable', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif";
@@ -58,11 +61,15 @@ const router = createHashRouter([
 		children: [
 			{
 				index: true,
-				element: <Navigate to="login" />,
+				element: <IndexPage />,
 			},
 			{
 				path: "login",
 				element: <LoginPage />,
+			},
+			{
+				path: "main",
+				element: <MainPage />,
 			},
 		],
 	},
@@ -76,10 +83,6 @@ function App() {
 	const [internalApi, _setInternalApi] = useState<InternalApi | undefined>(
 		new InternalApi("ws://127.0.0.1:15341"),
 	);
-
-	useEffect(() => {
-		getCurrent().setSize(new LogicalSize(600, 300));
-	}, []);
 
 	useEffect(() => {
 		const listener = (event?: CloseEvent) => {
@@ -122,9 +125,10 @@ function App() {
 	}, [internalApi]);
 
 	const api = useMemo((): Api | undefined => {
-		if (internalApiState === "connected")
+		if (internalApiState === "connected" && internalApi)
 			return {
-				login: new LoginImpl(internalApi!),
+				login: new LoginImpl(internalApi),
+				messaging: new MessagingImpl(internalApi),
 			};
 	}, [internalApiState]);
 

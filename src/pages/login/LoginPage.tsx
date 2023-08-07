@@ -1,3 +1,4 @@
+import { ApiContext } from "../../Api";
 import { Clear, Key } from "@mui/icons-material";
 import {
 	Avatar,
@@ -18,9 +19,8 @@ import {
 	Typography,
 	useMediaQuery,
 } from "@mui/material";
-import { useContext, useState, useEffect, useId } from "react";
-import { ApiContext } from "../../Api";
 import { LogicalSize, getCurrent } from "@tauri-apps/plugin-window";
+import { useContext, useEffect, useId, useState } from "react";
 
 export default function Login() {
 	const api = useContext(ApiContext);
@@ -49,7 +49,9 @@ export default function Login() {
 	}, [api]);
 
 	useEffect(() => {
-		getCurrent().setSize(new LogicalSize(700, 400));
+		const win = getCurrent();
+		win.setSize(new LogicalSize(700, 400));
+		win.setResizable(false);
 	}, []);
 
 	return (
@@ -139,7 +141,7 @@ export default function Login() {
 									))
 								) : (
 									<ListItem>
-										<ListItemText secondary="此处暂时没有支持自动登陆的账号。" />
+										<ListItemText secondary="此处暂时没有可以快速登录的账号。" />
 									</ListItem>
 								)}
 								<ListItem disablePadding>

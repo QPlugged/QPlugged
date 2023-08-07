@@ -1,13 +1,13 @@
-import EventEmitter from "eventemitter3";
 import toURL from "../utils/toURL";
 import { InternalApi } from "./api";
 import { IpcApi } from "./ipc";
 
-export class LoginImpl extends EventEmitter<LoginEvents> implements Login {
+export class LoginImpl implements Login {
 	private nt: IpcApi;
-	constructor({ nt }: InternalApi) {
-		super();
+	private business: IpcApi;
+	constructor({ nt, business }: InternalApi) {
 		this.nt = nt;
+		this.business = business;
 	}
 	async getAccountList(): Promise<LoginAccount[]> {
 		const ret = await this.nt.send(
@@ -28,6 +28,14 @@ export class LoginImpl extends EventEmitter<LoginEvents> implements Login {
 				quickLoginSupported: item.isQuickLogin,
 			};
 		});
+	}
+	async getCurrentAccount(): Promise<Account | undefined> {
+		const ret = await this.business.send("fetchAuthData");
+		if (ret.uin && ret.uid)
+			return {
+				uin: ret.uin,
+				uid: ret.uid,
+			};
 	}
 	private parseLoginError(ret: any): LoginError | undefined {
 		if (ret.result !== "0")

@@ -1,18 +1,16 @@
-type LoginEventEmitter = import("eventemitter3").EventEmitter<MainMessages>;
-
-declare interface LoginEvents {
-	"qrcode-update": (url: string) => void;
-}
-
-declare interface Login extends LoginEventEmitter {
+declare interface Login {
 	getAccountList(): Promise<LoginAccount[]>;
+	getCurrentAccount(): Promise<Account | undefined>;
 	loginWithUin(uin: string): Promise<LoginError | undefined>;
 	showLoginWindow(): Promise<void>;
 }
 
-declare interface LoginAccount {
+declare interface Account {
 	uin: string;
 	uid: string;
+}
+
+declare interface LoginAccount extends Account {
 	name: string;
 	avatar: string;
 	quickLoginSupported: boolean;
