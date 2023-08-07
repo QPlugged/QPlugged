@@ -1,22 +1,26 @@
 {
-	"$schema": "https://docs.rome.tools/schemas/12.1.3/schema.json",
-	"organizeImports": {
-		"enabled": true
-	},
-	"files": {
-		"ignore": [".yarn", ".pnp.cjs", ".pnp.loader.mjs", "dist", "src-tauri"]
-	},
-	"linter": {
-		"enabled": true,
-		"rules": {
-			"recommended": true,
-			"suspicious": {
-				"noExplicitAny": "off"
-			},
-			"correctness": {
-				"noInvalidConstructorSuper": "off"
-			},
-			"style": { "noNonNullAssertion": "off" }
-		}
-	}
+    "$schema": "https://docs.rome.tools/schemas/12.1.3/schema.json",
+    "organizeImports": {
+        "enabled": true
+    },
+    "formatter": {
+        "indentStyle": "space",
+        "indentSize": 4
+    },
+    "files": {
+        "ignore": [".yarn", ".pnp.cjs", ".pnp.loader.mjs", "dist", "src-tauri"]
+    },
+    "linter": {
+        "enabled": true,
+        "rules": {
+            "recommended": true,
+            "suspicious": {
+                "noExplicitAny": "off"
+            },
+            "correctness": {
+                "noInvalidConstructorSuper": "off"
+            },
+            "style": { "noNonNullAssertion": "off" }
+        }
+    }
 }
