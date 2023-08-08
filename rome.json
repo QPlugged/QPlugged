@@ -8,7 +8,14 @@
         "indentSize": 4
     },
     "files": {
-        "ignore": [".yarn", ".pnp.cjs", ".pnp.loader.mjs", "dist", "src-tauri"]
+        "ignore": [
+            ".vscode",
+            ".yarn",
+            ".pnp.cjs",
+            ".pnp.loader.mjs",
+            "dist",
+            "src-tauri"
+        ]
     },
     "linter": {
         "enabled": true,

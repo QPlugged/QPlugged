@@ -1,3 +1,5 @@
 {
-    "recommendations": ["arcanis.vscode-zipfs"]
+  "recommendations": [
+    "arcanis.vscode-zipfs"
+  ]
 }
