@@ -122,9 +122,6 @@ export default function Login() {
                                         <ListItem
                                             key={account.uid || account.uin}
                                             disablePadding
-                                            onClick={() =>
-                                                loginWithUin(account.uin)
-                                            }
                                             secondaryAction={
                                                 <IconButton
                                                     disabled={loggingIn}
@@ -135,6 +132,9 @@ export default function Login() {
                                         >
                                             <ListItemButton
                                                 disabled={loggingIn}
+                                                onClick={() =>
+                                                    loginWithUin(account.uin)
+                                                }
                                             >
                                                 <ListItemIcon>
                                                     <Avatar
