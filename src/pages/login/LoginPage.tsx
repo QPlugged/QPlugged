@@ -21,9 +21,11 @@ import {
 } from "@mui/material";
 import { LogicalSize, getCurrent } from "@tauri-apps/plugin-window";
 import { useContext, useEffect, useId, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function Login() {
     const api = useContext(ApiContext);
+    const navigate = useNavigate();
     const [loggingIn, setLoggingIn] = useState<boolean>(false);
     const [logInError, setLogInError] = useState<LoginError>();
     const logInErrorTitleId = useId();
@@ -38,6 +40,7 @@ export default function Login() {
             setLogInError(res);
             throw new Error(`登录失败：${JSON.stringify(res)}`);
         }
+        navigate("/");
     };
 
     useEffect(() => {
