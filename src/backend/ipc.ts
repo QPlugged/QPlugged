@@ -1,6 +1,6 @@
+import { deserialize, serialize } from "@ungap/structured-clone";
 import EventEmitter from "eventemitter3";
 import { nanoid } from "nanoid";
-import { deserialize, serialize } from "@ungap/structured-clone";
 
 type ResponseStatus = "fulfilled" | "rejected";
 

@@ -1,3 +1,6 @@
+import { Api, ApiContext } from "../../Api";
+import { groupToEntity, userToEntity } from "../../backend/messaging/converter";
+import useResize from "../../hooks/useResize";
 import {
     Avatar,
     Box,
@@ -9,12 +12,9 @@ import {
     Stack,
     Typography,
 } from "@mui/material";
-import { useContext, useEffect, useState } from "react";
-import { Api, ApiContext } from "../../Api";
 import { LogicalSize, getCurrent } from "@tauri-apps/plugin-window";
-import useResize from "../../hooks/useResize";
-import { groupToEntity, userToEntity } from "../../backend/messaging/converter";
 import dayjs from "dayjs";
+import { useContext, useEffect, useState } from "react";
 
 interface RecentContact {
     entity: Entity;
