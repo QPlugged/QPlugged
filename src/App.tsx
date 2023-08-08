@@ -15,9 +15,8 @@ import {
     experimental_extendTheme,
 } from "@mui/material";
 import { zhCN } from "@mui/material/locale";
-import { LogicalSize, getCurrent } from "@tauri-apps/plugin-window";
 import { useEffect, useMemo, useState } from "react";
-import { Navigate, RouterProvider, createHashRouter } from "react-router-dom";
+import { RouterProvider, createHashRouter } from "react-router-dom";
 
 const titleFontFamily =
     "'Segoe UI Variable Display', 'Segoe UI Variable', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif";

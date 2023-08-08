@@ -12,7 +12,7 @@ export function encodeImageElement(
     ele: any,
     media: MessagingMedia,
     messageId: string,
-    peer: Peer,
+    entity: Entity,
 ): MessageElementImage {
     return {
         type: "image",
@@ -20,7 +20,7 @@ export function encodeImageElement(
         progress: media.downloadMedia(
             messageId,
             ele.elementId,
-            peer,
+            entity,
             ele.picElement.thumbPath.get(0),
             ele.picElement.sourcePath,
         ),
@@ -53,7 +53,7 @@ export function encodeRawElement(ele: any): MessageElementRaw {
 
 export function encodeMessage(raw: any, media: MessagingMedia): Message {
     const id = raw.msgId;
-    const peer = encodePeer(raw);
+    const entity = encodeEntity(raw);
     const sender = {
         uid: raw.senderUid,
         name: raw.sendNickName,
@@ -66,7 +66,7 @@ export function encodeMessage(raw: any, media: MessagingMedia): Message {
             {
                 1: encodeTextElement,
                 2: (ele: any) => {
-                    const element = encodeImageElement(ele, media, id, peer);
+                    const element = encodeImageElement(ele, media, id, entity);
                     progress.push(element.progress!);
                     return element;
                 },
@@ -76,19 +76,19 @@ export function encodeMessage(raw: any, media: MessagingMedia): Message {
     });
     return {
         id: id,
-        peer: peer,
+        entity: entity,
         sender: sender,
+        timestamp: parseInt(raw.msgTime) || 0,
         elements: elements,
         progress: Promise.all(progress),
         raw: raw,
     };
 }
 
-export function encodePeer(raw: any): Peer {
+export function encodeEntity(raw: any): Entity {
     return {
-        type: { 1: "pm", 2: "group" }[raw.chatType as number] || raw.chatType,
+        type: { 1: "user", 2: "group" }[raw.chatType as number] || raw.chatType,
         uid: raw.peerUid,
-        guildId: raw.guildId || undefined,
     };
 }
 

@@ -49,10 +49,10 @@ export function decodeRawElement(element: MessageElementRaw) {
     return element.raw;
 }
 
-export function decodePeer(data: Peer): any {
+export function decodeEntity(data: Entity): any {
     return {
-        chatType: { pm: 1, group: 1 }[data.type] || data.type,
+        chatType: { user: 1, group: 2 }[data.type] || data.type,
         peerUid: data.uid,
-        guildId: data.guildId || "",
+        guildId: "",
     };
 }

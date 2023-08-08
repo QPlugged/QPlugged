@@ -1,6 +1,6 @@
 import { InternalApi } from "../api";
 import { IpcApi } from "../ipc";
-import { decodePeer } from "./decoder";
+import { decodeEntity } from "./decoder";
 
 export class MessagingMedia {
     private nt: IpcApi;
@@ -55,7 +55,7 @@ export class MessagingMedia {
     public async downloadMedia(
         msgId: string,
         elementId: string,
-        peer: Peer,
+        entity: Entity,
         filePath: string,
         originalFilePath: string,
     ): Promise<void> {
@@ -64,7 +64,7 @@ export class MessagingMedia {
             "nodeIKernelMsgService/downloadRichMedia",
             {
                 getReq: {
-                    ...decodePeer(peer),
+                    ...decodeEntity(entity),
                     msgId: msgId,
                     elementId: elementId,
                     thumbSize: 0,

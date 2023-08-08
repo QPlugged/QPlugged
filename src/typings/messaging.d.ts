@@ -1,6 +1,5 @@
 declare interface MessagingEvents {
     "new-messages": (messages: Message[]) => void;
-    "add-sent-message": (message: Message) => void;
 }
 
 type MessagingEventEmitter =
@@ -8,17 +7,23 @@ type MessagingEventEmitter =
 
 declare interface Messaging extends MessagingEventEmitter {
     getPreviousMessages(
-        peer: Peer,
+        entity: Entity,
         messageCount: number,
         fromMessageId?: string,
     ): Promise<Message[]>;
-    sendMessage(peer: Peer, elements: MessageElement[]): Promise<string>;
+    sendMessage(entity: Entity, elements: MessageElement[]): Promise<string>;
+    getAvatars(entities: Entity[]): Promise<Map<Entity, string>>;
+    getUserInfo(uid: string): Promise<User>;
+    getGroupInfo(uid: string): Promise<Group>;
+    getFriendsList(forced: boolean): Promise<User[]>;
+    getGroupsList(forced: boolean): Promise<Group[]>;
 }
 
 declare interface Message {
     id: string;
-    peer: Peer;
+    entity: Entity;
     sender: Sender;
+    timestamp: number;
     elements: MessageElement[];
     progress: Promise<void[]>;
     raw: any;
@@ -63,12 +68,6 @@ declare interface Sender {
     memberName: string;
 }
 
-declare interface Peer {
-    type: "pm" | "group" | number;
-    uid: string;
-    guildId?: string;
-}
-
 declare interface User extends Account {
     qid: string;
     avatar: string;
@@ -86,4 +85,10 @@ declare interface Group {
     memberLimit: number;
     memberCount: number;
     raw: any;
+}
+
+declare type EntityType = "user" | "group" | number;
+declare interface Entity {
+    type: EntityType;
+    uid: string;
 }

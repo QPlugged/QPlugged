@@ -1,5 +1,6 @@
 import EventEmitter from "eventemitter3";
 import { nanoid } from "nanoid";
+import { deserialize, serialize } from "@ungap/structured-clone";
 
 type ResponseStatus = "fulfilled" | "rejected";
 
@@ -45,7 +46,9 @@ export class IpcApi extends EventEmitter {
         this.ws = ws;
         this.api = api;
         this.ws.addEventListener("message", (e) => {
-            const data: WSEvent | WSResponse = JSON.parse(e.data.toString());
+            const data = deserialize(JSON.parse(e.data.toString())) as
+                | WSEvent
+                | WSResponse;
             console.debug("[backend/ipc]", "DOWN", data);
             if (data.type === "event") this.emit(data.cmd, data.payload);
             else if (data.type === "response")
@@ -68,7 +71,7 @@ export class IpcApi extends EventEmitter {
             id: id,
         };
         console.debug("[backend/ipc]", "UP", _data);
-        this.ws.send(JSON.stringify(_data));
+        this.ws.send(JSON.stringify(serialize(_data)));
         return new Promise<any>((resolve, reject) => {
             this.pendingCalls[id] = (status, ret) => {
                 if (status === "fulfilled") resolve(ret);
@@ -97,6 +100,10 @@ export class IpcApi extends EventEmitter {
 }
 
 export class Ipc extends WebSocket {
+    constructor(url: string) {
+        super(url);
+        this.binaryType = "blob";
+    }
     public useApi(api: string, events: string[] = []) {
         return new IpcApi(this, api, events);
     }
