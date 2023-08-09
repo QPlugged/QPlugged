@@ -6,6 +6,7 @@ type MessagingEventEmitter =
     import("eventemitter3").EventEmitter<MessagingEvents>;
 
 declare interface Messaging extends MessagingEventEmitter {
+    getFaceResourceDir(): Promise<string>;
     getPreviousMessages(
         entity: Entity,
         messageCount: number,
@@ -21,6 +22,7 @@ declare interface Messaging extends MessagingEventEmitter {
 
 declare interface Message {
     id: string;
+    seq: string;
     entity: Entity;
     sender: Sender;
     timestamp: number;
@@ -30,13 +32,21 @@ declare interface Message {
 }
 
 declare type MessageElement =
+    | MessageElementReply
     | MessageElementText
     | MessageElementImage
     | MessageElementFace
     | MessageElementRaw;
 
 declare interface MessageElementBase {
+    id?: string;
     raw?: any;
+}
+
+declare interface MessageElementReply extends MessageElementBase {
+    type: "reply";
+    sender: string;
+    messageSeq: string;
 }
 
 declare interface MessageElementText extends MessageElementBase {
@@ -44,15 +54,25 @@ declare interface MessageElementText extends MessageElementBase {
     content: string;
 }
 
+declare type MessageElementImageType = "typcial" | "sticker" | [number, number];
+
 declare interface MessageElementImage extends MessageElementBase {
     type: "image";
-    filePath: string;
+    files: string[];
+    imageType: MessageElementImageType;
     progress?: Promise<void>;
+    width: number;
 }
+
+declare type MessageElementFaceType =
+    | "typcial-1"
+    | "typcial-2"
+    | "big"
+    | number;
 
 declare interface MessageElementFace extends MessageElementBase {
     type: "face";
-    faceType: "typcial-1" | "typcial-2" | "big" | number;
+    faceType: MessageElementFaceType;
     faceId: number;
     faceBigId?: number;
 }

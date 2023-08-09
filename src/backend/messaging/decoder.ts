@@ -45,6 +45,31 @@ export function decodeFaceElement(element: MessageElementFace) {
     };
 }
 
+// export function decodeReplyElement(element: MessageElementReply) {
+//     return {
+//         elementType: 7,
+//         elementId: "",
+//         replyElement: {
+//             faceType:
+//                 {
+//                     "typcial-1": 1,
+//                     "typcial-2": 2,
+//                     big: 3,
+//                 }[element.faceType] || element.faceType,
+//             faceIndex: element.faceId,
+//             ...(element.faceType === "big" && {
+//                 packId: "1",
+//                 stickerId: (element.faceBigId || "0").toString(),
+//                 stickerType: 1,
+//                 sourceType: 1,
+//                 resultId: "",
+//                 superisedId: "",
+//                 randomType: 1,
+//             }),
+//         },
+//     };
+// }
+
 export function decodeRawElement(element: MessageElementRaw) {
     return element.raw;
 }

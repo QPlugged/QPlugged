@@ -38,10 +38,19 @@ export class MessagingImpl
         });
     }
 
+    async getFaceResourceDir(): Promise<string> {
+        const res = await this.nt.send(
+            "nodeIKernelMsgService/getEmojiResourcePath",
+            { type: 1 },
+        );
+        return res.resourcePath;
+    }
+
     async getPreviousMessages(
         entity: Entity,
         messageCount: number,
         fromMessageId = "0",
+        specialFlag = true,
     ): Promise<Message[]> {
         const res = await this.nt.send(
             "nodeIKernelMsgService/getMsgsIncludeSelf",
@@ -49,7 +58,7 @@ export class MessagingImpl
                 peer: decodeEntity(entity),
                 msgId: fromMessageId,
                 cnt: messageCount,
-                queryOrder: true,
+                queryOrder: specialFlag,
             },
             undefined,
         );
@@ -75,7 +84,8 @@ export class MessagingImpl
                             image: (element: MessageElementImage) =>
                                 decodeImageElement(
                                     this.media.prepareImageElement(
-                                        element.filePath,
+                                        element.files[0],
+                                        element.imageType,
                                     ),
                                 ),
                             face: decodeFaceElement,
@@ -96,12 +106,12 @@ export class MessagingImpl
         );
     }
 
-    public async getAvatars(entities: Entity[]): Promise<Map<Entity, string>> {
+    async getAvatars(entities: Entity[]): Promise<Map<Entity, string>> {
         const avatars = new Map<Entity, string>();
         const users: Map<string, string> = await this.nt.send(
             "nodeIKernelAvatarService/getMembersAvatarPath",
             {
-                uids: filterEntities(entities, "user"),
+                uids: [...new Set(filterEntities(entities, "user"))],
                 clarity: 0,
             },
         );
@@ -115,7 +125,7 @@ export class MessagingImpl
         const groups: Map<string, string> = await this.nt.send(
             "nodeIKernelAvatarService/getGroupsAvatarPath",
             {
-                groupCodes: filterEntities(entities, "group"),
+                groupCodes: [...new Set(filterEntities(entities, "group"))],
                 clarity: 0,
             },
         );

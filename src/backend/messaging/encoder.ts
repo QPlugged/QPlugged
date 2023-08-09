@@ -1,8 +1,20 @@
+import toURL from "../../utils/toURL";
 import { MessagingMedia } from "./media";
+
+export function encodeReplyElement(ele: any, msg: any): MessageElementReply {
+    return {
+        type: "reply",
+        id: ele.elementId,
+        messageSeq: msg.msgSeq,
+        sender: ele.replyElement.senderUidStr,
+        raw: ele,
+    };
+}
 
 export function encodeTextElement(ele: any): MessageElementText {
     return {
         type: "text",
+        id: ele.elementId,
         content: ele.textElement.content,
         raw: ele,
     };
@@ -16,7 +28,20 @@ export function encodeImageElement(
 ): MessageElementImage {
     return {
         type: "image",
-        filePath: ele.picElement.sourcePath,
+        id: ele.elementId,
+        files: [
+            toURL(ele.picElement.sourcePath),
+            ...[...(ele.picElement.thumbPath as Map<any, any>).values()].map(
+                (path) => toURL(path),
+            ),
+        ],
+        imageType:
+            ele.picElement.picType === 1001 && ele.picElement.picSubType === 0
+                ? "typcial"
+                : ele.picElement.picType === 1000 &&
+                  ele.picElement.picSubType === 1
+                ? "sticker"
+                : [ele.picElement.picType, ele.picElement.picSubType],
         progress: media.downloadMedia(
             messageId,
             ele.elementId,
@@ -24,6 +49,7 @@ export function encodeImageElement(
             ele.picElement.thumbPath.get(0),
             ele.picElement.sourcePath,
         ),
+        width: ele.picElement.picWidth,
         raw: ele,
     };
 }
@@ -31,6 +57,7 @@ export function encodeImageElement(
 export function encodeFaceElement(ele: any): MessageElementFace {
     return {
         type: "face",
+        id: ele.elementId,
         faceType:
             {
                 1: "typcial-1",
@@ -47,6 +74,7 @@ export function encodeFaceElement(ele: any): MessageElementFace {
 export function encodeRawElement(ele: any): MessageElementRaw {
     return {
         type: "raw",
+        id: ele.elementId,
         raw: ele,
     };
 }
@@ -71,11 +99,13 @@ export function encodeMessage(raw: any, media: MessagingMedia): Message {
                     return element;
                 },
                 6: encodeFaceElement,
+                7: (ele: any) => encodeReplyElement(ele, raw),
             }[ele.elementType as number] || encodeRawElement
         )(ele);
     });
     return {
         id: id,
+        seq: raw.msgSeq,
         entity: entity,
         sender: sender,
         timestamp: parseInt(raw.msgTime) || 0,

@@ -1,3 +1,4 @@
+import { getCurrent } from "@tauri-apps/plugin-window";
 import { Api, ApiContext } from "./Api";
 import { InternalApi } from "./backend/api";
 import { LoginImpl } from "./backend/login";
@@ -131,6 +132,11 @@ function App() {
                 messaging: new MessagingImpl(internalApi),
             };
     }, [internalApiState]);
+
+    useEffect(() => {
+        const win = getCurrent();
+        win.setDecorations(true);
+    }, []);
 
     return (
         <Experimental_CssVarsProvider theme={theme} defaultMode="system">
