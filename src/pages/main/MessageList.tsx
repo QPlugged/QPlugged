@@ -18,51 +18,50 @@ import {
 import { css } from "@emotion/react";
 import dayjs from "dayjs";
 import toURL from "../../utils/toURL";
-import { messageElementsToString } from "../../backend/messaging/converter";
 
-function MessageItemElementReply({
-    element,
-    entity,
-    getMessageBySeq,
-}: {
-    element: MessageElementReply;
-    entity: Entity;
-    getMessageBySeq: (seq: string) => Promise<Message>;
-}) {
-    const api = useContext(ApiContext);
-    const [sourceMessage, setSourceMessage] = useState<Message>();
+// function MessageItemElementReply({
+//     element,
+//     entity,
+//     getMessageBySeq,
+// }: {
+//     element: MessageElementReply;
+//     entity: Entity;
+//     getMessageBySeq: (seq: string) => Promise<Message>;
+// }) {
+//     const api = useContext(ApiContext);
+//     const [sourceMessage, setSourceMessage] = useState<Message>();
 
-    useEffect(() => {
-        (async () => {
-            console.log(element.raw.replyElement.sourceMsgIdInRecords);
-            api.messaging
-                .getPreviousMessages(
-                    entity,
-                    7,
-                    element.raw.replyElement.sourceMsgIdInRecords,
-                    false,
-                )
-                .then((msg) => console.log(msg));
-            // const sourceMessage = await getMessageBySeq(element.messageSeq);
-            // setSourceMessage(sourceMessage);
-        })();
-    }, [element, entity, api]);
+//     useEffect(() => {
+//         (async () => {
+//             console.log(element.raw.replyElement.sourceMsgIdInRecords);
+//             api.messaging
+//                 .getPreviousMessages(
+//                     entity,
+//                     7,
+//                     element.raw.replyElement.sourceMsgIdInRecords,
+//                     false,
+//                 )
+//                 .then((msg) => console.log(msg));
+//             // const sourceMessage = await getMessageBySeq(element.messageSeq);
+//             // setSourceMessage(sourceMessage);
+//         })();
+//     }, [element, entity, api]);
 
-    return (
-        <Stack>
-            {sourceMessage && (
-                <Typography variant="body1">
-                    {sourceMessage.sender.memberName ||
-                        sourceMessage.sender.name}
-                    {`${messageElementsToString(sourceMessage.elements)}seq${
-                        sourceMessage.seq
-                    }realseq${element.messageSeq}`}
-                    {JSON.stringify(element.raw)}
-                </Typography>
-            )}
-        </Stack>
-    );
-}
+//     return (
+//         <Stack>
+//             {sourceMessage && (
+//                 <Typography variant="body1">
+//                     {sourceMessage.sender.memberName ||
+//                         sourceMessage.sender.name}
+//                     {`${messageElementsToString(sourceMessage.elements)}seq${
+//                         sourceMessage.seq
+//                     }realseq${element.messageSeq}`}
+//                     {JSON.stringify(element.raw)}
+//                 </Typography>
+//             )}
+//         </Stack>
+//     );
+// }
 
 function MessageItemElementText({ element }: { element: MessageElementText }) {
     return (
@@ -151,11 +150,9 @@ function MessageItem({
     lastMessage,
     message,
     nextMessage,
-    entity,
     avatar,
     loggedInAccount,
     faceResourceDir,
-    getMessageBySeq,
 }: {
     lastMessage?: Message;
     message: Message;
@@ -303,18 +300,17 @@ function MessageItem({
                                     faceResourceDir={faceResourceDir}
                                 />
                             );
-                        else if (element.type === "reply") {
-                            child = (
-                                <MessageItemElementReply
-                                    element={element}
-                                    entity={entity}
-                                    getMessageBySeq={getMessageBySeq}
-                                />
-                            );
-                        } else child = JSON.stringify(element);
+                        // else if (element.type === "reply")
+                        //     child = (
+                        //         <MessageItemElementReply
+                        //             element={element}
+                        //             entity={entity}
+                        //             getMessageBySeq={getMessageBySeq}
+                        //         />
+                        //     );
+                        // else child = JSON.stringify(element);
                         return <Fragment key={element.id!}>{child}</Fragment>;
                     })}
-                    {message.id}
                     <Stack
                         position="absolute"
                         right={0}
@@ -453,8 +449,6 @@ export default function MessageList({ entity }: { entity: Entity }) {
     useEffect(() => {
         fetchMoreMessages();
     }, [entity, fetchMoreMessages]);
-
-    console.log(messagesSeq);
 
     return (
         <Virtuoso

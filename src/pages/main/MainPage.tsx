@@ -1,8 +1,7 @@
-import { ApiContext } from "../../Api";
 import { LogicalSize, getCurrent } from "@tauri-apps/plugin-window";
-import { useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import RecentContactList from "./RecentContactList";
-import { Stack, Box } from "@mui/material";
+import { Stack } from "@mui/material";
 import Resizer from "../../components/Resizer";
 import MessageList from "./MessageList";
 
@@ -23,20 +22,18 @@ export function MainPage() {
                 style={{ width: leftPanelWidth }}
                 position="relative"
             >
-                <Box>Placeholder</Box>
                 <RecentContactList
                     entity={selectedEntity}
                     onSelectEntity={setSelectedEntity}
                 />
                 <Resizer
-                    initalSize={300}
+                    initalSize={400}
                     onResize={(size) => setLeftPanelWidth(size)}
                     axis="x"
                     resizerSize={16}
                     position="end"
                 />
             </Stack>
-
             <Stack direction="column" width="100%" height="100%">
                 {selectedEntity && <MessageList entity={selectedEntity} />}
             </Stack>
