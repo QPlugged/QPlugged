@@ -12,7 +12,7 @@ export function filterEntities(entities: Entity[], type: EntityType): string[] {
         .map((entity) => entity.uid);
 }
 
-export function messageElementsToString(elements: MessageElement[]) {
+export function messageElementsToString(elements: MessageNonSendableElement[]) {
     return elements
         .map((element) => {
             if (element.type === "text")
