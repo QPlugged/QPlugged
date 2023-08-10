@@ -80,7 +80,7 @@ function MessageItemElementRevoke({
     element: MessageNonSendableElementRevoke;
 }) {
     return (
-        <Typography fontStyle="italic">
+        <Typography fontStyle="italic" color="text.secondary">
             {element.operator.uid !== element.sender.uid ? (
                 <>
                     <Typography color="primary.main" component="span">
@@ -379,7 +379,10 @@ function MessageItem({
                             child = (
                                 <MessageItemElementRevoke element={element} />
                             );
-                        else child = JSON.stringify(element);
+                        else if (element.type === "raw")
+                            child = `不支持渲染此元素: ${JSON.stringify(
+                                element.raw,
+                            )}`;
                         return <Fragment key={element.id!}>{child}</Fragment>;
                     })}
                     <Stack

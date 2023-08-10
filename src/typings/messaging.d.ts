@@ -36,7 +36,7 @@ declare interface Message {
     entity: Entity;
     sender: MessageEntity;
     timestamp: number;
-    elements: MessageElement[];
+    elements: MessageNonSendableElement[];
     progress: Promise<void[]>;
     raw: any;
 }
