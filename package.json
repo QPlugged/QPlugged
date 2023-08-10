@@ -25,10 +25,13 @@
         "@ungap/structured-clone": "^1.2.0",
         "dayjs": "^1.11.9",
         "eventemitter3": "^5.0.1",
+        "fast-deep-equal": "^3.1.3",
         "nanoid": "^4.0.2",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
-        "react-router-dom": "^6.14.2"
+        "react-router-dom": "^6.14.2",
+        "react-scrollbars-custom": "^4.1.1",
+        "react-virtuoso": "^4.4.2"
     },
     "devDependencies": {
         "@tauri-apps/cli": "^2.0.0-alpha.9",

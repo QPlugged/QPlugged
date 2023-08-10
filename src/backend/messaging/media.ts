@@ -16,7 +16,10 @@ export class MessagingMedia {
             },
         );
     }
-    public async prepareImageElement(file: string): Promise<any> {
+    public async prepareImageElement(
+        file: string,
+        imageType: MessageElementImageType,
+    ): Promise<any> {
         const type = await this.fs.send("getFileType", file);
         const md5 = await this.fs.send("getFileMd5", file);
         const fileName = `${md5}.${type.ext}`;
@@ -44,7 +47,10 @@ export class MessagingMedia {
             fileName: fileName,
             sourcePath: filePath,
             original: true,
-            picType: 1001,
+            picType:
+                { typical: [1001, 0], sticker: [1000, 1] }[
+                    imageType as string
+                ] || imageType,
             picSubType: 0,
             fileUuid: "",
             fileSubId: "",

@@ -1,8 +1,44 @@
+import toURL from "../../utils/toURL";
 import { MessagingMedia } from "./media";
 
-export function encodeTextElement(ele: any): MessageElementText {
+export function encodeReplyElement(
+    ele: any,
+    msg: any,
+): MessageNonSendableElementReply {
+    return {
+        type: "reply",
+        id: ele.elementId,
+        messageSeq: msg.msgSeq,
+        sender: ele.replyElement.senderUidStr,
+        raw: ele,
+    };
+}
+
+export function encodeRevokeElement(ele: any): MessageNonSendableElementRevoke {
+    return {
+        type: "revoke",
+        id: ele.elementId,
+        operator: {
+            name: ele.grayTipElement.revokeElement.operatorNick || "",
+            memberName:
+                ele.grayTipElement.revokeElement.operatorMemRemark || "",
+            uid: ele.grayTipElement.revokeElement.operatorUid,
+        },
+        sender: {
+            name: ele.grayTipElement.revokeElement.origMsgSenderNick,
+            memberName:
+                ele.grayTipElement.revokeElement.origMsgSenderMemRemark || "",
+            uid: ele.grayTipElement.revokeElement.origMsgSenderUid,
+        },
+        isRevokedBySelf: ele.grayTipElement.revokeElement.isSelfOperate,
+        raw: ele,
+    };
+}
+
+export function encodeTextElement(ele: any): MessageNonSendableElementText {
     return {
         type: "text",
+        id: ele.elementId,
         content: ele.textElement.content,
         raw: ele,
     };
@@ -13,10 +49,23 @@ export function encodeImageElement(
     media: MessagingMedia,
     messageId: string,
     entity: Entity,
-): MessageElementImage {
+): MessageNonSendableElementImage {
     return {
         type: "image",
-        filePath: ele.picElement.sourcePath,
+        id: ele.elementId,
+        files: [
+            toURL(ele.picElement.sourcePath),
+            ...[...(ele.picElement.thumbPath as Map<any, any>).values()].map(
+                (path) => toURL(path),
+            ),
+        ],
+        imageType:
+            ele.picElement.picType === 1001 && ele.picElement.picSubType === 0
+                ? "typcial"
+                : ele.picElement.picType === 1000 &&
+                  ele.picElement.picSubType === 1
+                ? "sticker"
+                : [ele.picElement.picType, ele.picElement.picSubType],
         progress: media.downloadMedia(
             messageId,
             ele.elementId,
@@ -24,13 +73,15 @@ export function encodeImageElement(
             ele.picElement.thumbPath.get(0),
             ele.picElement.sourcePath,
         ),
+        width: ele.picElement.picWidth,
         raw: ele,
     };
 }
 
-export function encodeFaceElement(ele: any): MessageElementFace {
+export function encodeFaceElement(ele: any): MessageNonSendableElementFace {
     return {
         type: "face",
+        id: ele.elementId,
         faceType:
             {
                 1: "typcial-1",
@@ -44,9 +95,10 @@ export function encodeFaceElement(ele: any): MessageElementFace {
     };
 }
 
-export function encodeRawElement(ele: any): MessageElementRaw {
+export function encodeRawElement(ele: any): MessageNonSendableElementRaw {
     return {
         type: "raw",
+        id: ele.elementId,
         raw: ele,
     };
 }
@@ -61,21 +113,33 @@ export function encodeMessage(raw: any, media: MessagingMedia): Message {
     };
 
     const progress: Promise<void>[] = [];
-    const elements = (raw.elements as any[]).map((ele): MessageElement => {
-        return (
-            {
-                1: encodeTextElement,
-                2: (ele: any) => {
-                    const element = encodeImageElement(ele, media, id, entity);
-                    progress.push(element.progress!);
-                    return element;
-                },
-                6: encodeFaceElement,
-            }[ele.elementType as number] || encodeRawElement
-        )(ele);
-    });
+    const elements = (raw.elements as any[]).map(
+        (ele): MessageNonSendableElement => {
+            return (
+                {
+                    1: encodeTextElement,
+                    2: (ele: any) => {
+                        const element = encodeImageElement(
+                            ele,
+                            media,
+                            id,
+                            entity,
+                        );
+                        progress.push(element.progress!);
+                        return element;
+                    },
+                    6: encodeFaceElement,
+                    7: (ele: any) => encodeReplyElement(ele, raw),
+                    8: { 1: encodeRevokeElement }[
+                        ele.grayTipElement?.subElementType as number
+                    ],
+                }[ele.elementType as number] || encodeRawElement
+            )(ele);
+        },
+    );
     return {
         id: id,
+        seq: raw.msgSeq,
         entity: entity,
         sender: sender,
         timestamp: parseInt(raw.msgTime) || 0,

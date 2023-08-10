@@ -7,6 +7,7 @@ import {
     decodeFaceElement,
     decodeImageElement,
     decodeRawElement,
+    decodeReplyElement,
     decodeTextElement,
 } from "./decoder";
 import { encodeGroup, encodeMessage, encodeUser } from "./encoder";
@@ -38,10 +39,19 @@ export class MessagingImpl
         });
     }
 
+    async getFaceResourceDir(): Promise<string> {
+        const res = await this.nt.send(
+            "nodeIKernelMsgService/getEmojiResourcePath",
+            { type: 1 },
+        );
+        return res.resourcePath;
+    }
+
     async getPreviousMessages(
         entity: Entity,
         messageCount: number,
         fromMessageId = "0",
+        queryOrder = true,
     ): Promise<Message[]> {
         const res = await this.nt.send(
             "nodeIKernelMsgService/getMsgsIncludeSelf",
@@ -49,7 +59,29 @@ export class MessagingImpl
                 peer: decodeEntity(entity),
                 msgId: fromMessageId,
                 cnt: messageCount,
-                queryOrder: true,
+                queryOrder: queryOrder,
+            },
+            undefined,
+        );
+        const messages = (res.msgList as any[]).map((raw) =>
+            encodeMessage(raw, this.media),
+        );
+        return messages;
+    }
+
+    async getPreviousMessagesBySeq(
+        entity: Entity,
+        messageCount: number,
+        messageSeq: string,
+        queryOrder = true,
+    ): Promise<Message[]> {
+        const res = await this.nt.send(
+            "nodeIKernelMsgService/getMsgsBySeqAndCount",
+            {
+                peer: decodeEntity(entity),
+                msgSeq: messageSeq,
+                cnt: messageCount,
+                queryOrder: queryOrder,
             },
             undefined,
         );
@@ -61,7 +93,7 @@ export class MessagingImpl
 
     async sendMessage(
         entity: Entity,
-        elements: MessageElement[],
+        elements: MessageSendableElement[],
     ): Promise<string> {
         await this.nt.send(
             "nodeIKernelMsgService/sendMsg",
@@ -71,11 +103,13 @@ export class MessagingImpl
                 msgElements: await Promise.all(
                     elements.map(async (element) => {
                         return {
+                            reply: decodeReplyElement,
                             text: decodeTextElement,
-                            image: (element: MessageElementImage) =>
+                            image: (element: MessageSendableElementImage) =>
                                 decodeImageElement(
                                     this.media.prepareImageElement(
-                                        element.filePath,
+                                        element.file,
+                                        element.imageType,
                                     ),
                                 ),
                             face: decodeFaceElement,
@@ -96,12 +130,12 @@ export class MessagingImpl
         );
     }
 
-    public async getAvatars(entities: Entity[]): Promise<Map<Entity, string>> {
+    async getAvatars(entities: Entity[]): Promise<Map<Entity, string>> {
         const avatars = new Map<Entity, string>();
         const users: Map<string, string> = await this.nt.send(
             "nodeIKernelAvatarService/getMembersAvatarPath",
             {
-                uids: filterEntities(entities, "user"),
+                uids: [...new Set(filterEntities(entities, "user"))],
                 clarity: 0,
             },
         );
@@ -115,7 +149,7 @@ export class MessagingImpl
         const groups: Map<string, string> = await this.nt.send(
             "nodeIKernelAvatarService/getGroupsAvatarPath",
             {
-                groupCodes: filterEntities(entities, "group"),
+                groupCodes: [...new Set(filterEntities(entities, "group"))],
                 clarity: 0,
             },
         );

@@ -49,7 +49,7 @@ export class IpcApi extends EventEmitter {
             const data = deserialize(JSON.parse(e.data.toString())) as
                 | WSEvent
                 | WSResponse;
-            console.debug("[backend/ipc]", "DOWN", data);
+            // console.debug("[backend/ipc]", "DOWN", data);
             if (data.type === "event") this.emit(data.cmd, data.payload);
             else if (data.type === "response")
                 this.pendingCalls?.[data.id]?.(data.status, data.ret);
@@ -70,7 +70,7 @@ export class IpcApi extends EventEmitter {
             ...data,
             id: id,
         };
-        console.debug("[backend/ipc]", "UP", _data);
+        // console.debug("[backend/ipc]", "UP", _data);
         this.ws.send(JSON.stringify(serialize(_data)));
         return new Promise<any>((resolve, reject) => {
             this.pendingCalls[id] = (status, ret) => {

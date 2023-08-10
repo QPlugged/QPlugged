@@ -6,12 +6,23 @@ type MessagingEventEmitter =
     import("eventemitter3").EventEmitter<MessagingEvents>;
 
 declare interface Messaging extends MessagingEventEmitter {
+    getFaceResourceDir(): Promise<string>;
     getPreviousMessages(
         entity: Entity,
         messageCount: number,
         fromMessageId?: string,
+        queryOrder?: boolean,
     ): Promise<Message[]>;
-    sendMessage(entity: Entity, elements: MessageElement[]): Promise<string>;
+    getPreviousMessagesBySeq(
+        entity: Entity,
+        messageCount: number,
+        messageSeq: string,
+        queryOrder = true,
+    ): Promise<Message[]>;
+    sendMessage(
+        entity: Entity,
+        elements: SendableMessageElement[],
+    ): Promise<string>;
     getAvatars(entities: Entity[]): Promise<Map<Entity, string>>;
     getUserInfo(uid: string): Promise<User>;
     getGroupInfo(uid: string): Promise<Group>;
@@ -21,48 +32,137 @@ declare interface Messaging extends MessagingEventEmitter {
 
 declare interface Message {
     id: string;
+    seq: string;
     entity: Entity;
-    sender: Sender;
+    sender: MessageEntity;
     timestamp: number;
-    elements: MessageElement[];
+    elements: MessageNonSendableElement[];
     progress: Promise<void[]>;
     raw: any;
 }
 
-declare type MessageElement =
-    | MessageElementText
-    | MessageElementImage
-    | MessageElementFace
-    | MessageElementRaw;
+declare type MessageNonSendableElement =
+    | MessageNonSendableElementReply
+    | MessageNonSendableElementRevoke
+    | MessageNonSendableElementText
+    | MessageNonSendableElementImage
+    | MessageNonSendableElementFace
+    | MessageNonSendableElementRaw;
 
-declare interface MessageElementBase {
-    raw?: any;
+declare type MessageSendableElement =
+    | MessageSendableElementReply
+    | MessageSendableElementText
+    | MessageSendableElementImage
+    | MessageSendableElementFace
+    | MessageSendableElementRaw;
+
+declare interface MessageNonSendableElementBase {
+    id: string;
+    raw: any;
 }
 
-declare interface MessageElementText extends MessageElementBase {
+declare type MessageSendableElementBase = {};
+
+interface MessageCommonElementReply {
+    type: "reply";
+    sender: string;
+    messageSeq: string;
+}
+
+declare interface MessageNonSendableElementReply
+    extends MessageNonSendableElementBase,
+        MessageCommonElementReply {}
+
+declare interface MessageSendableElementReply
+    extends MessageSendableElementBase,
+        MessageCommonElementReply {
+    messageId: string;
+    messageSummary: string;
+}
+
+interface MessageCommonElementRevoke {
+    type: "revoke";
+    operator: MessageEntity;
+    sender: MessageEntity;
+    isRevokedBySelf: boolean;
+}
+
+declare interface MessageNonSendableElementRevoke
+    extends MessageNonSendableElementBase,
+        MessageCommonElementRevoke {}
+
+interface MessageCommonElementText {
     type: "text";
     content: string;
 }
 
-declare interface MessageElementImage extends MessageElementBase {
+declare interface MessageNonSendableElementText
+    extends MessageNonSendableElementBase,
+        MessageCommonElementText {}
+
+declare interface MessageSendableElementText
+    extends MessageSendableElementBase,
+        MessageCommonElementText {}
+
+declare type MessageElementImageType = "typcial" | "sticker" | [number, number];
+
+interface MessageCommonElementImage {
     type: "image";
-    filePath: string;
-    progress?: Promise<void>;
+    imageType: MessageElementImageType;
 }
 
-declare interface MessageElementFace extends MessageElementBase {
+declare interface MessageNonSendableElementImage
+    extends MessageNonSendableElementBase,
+        MessageCommonElementImage {
+    files: string[];
+    progress: Promise<void>;
+    width: number;
+}
+
+declare interface MessageSendableElementImage
+    extends MessageSendableElementBase,
+        MessageCommonElementImage {
+    file: string;
+}
+
+declare type MessageElementFaceType =
+    | "typcial-1"
+    | "typcial-2"
+    | "big"
+    | number;
+
+interface MessageCommonElementFace {
     type: "face";
-    faceType: "typcial-1" | "typcial-2" | "big" | number;
+    faceType: MessageElementFaceType;
     faceId: number;
     faceBigId?: number;
 }
 
-declare interface MessageElementRaw extends MessageElementBase {
+declare interface MessageNonSendableElementFace
+    extends MessageNonSendableElementBase,
+        MessageCommonElementFace {}
+
+declare interface MessageSendableElementFace
+    extends MessageSendableElementBase,
+        MessageCommonElementFace {}
+
+interface MessageCommonElementRaw {
     type: "raw";
     raw: any;
 }
 
-declare interface Sender {
+declare interface MessageNonSendableElementRaw
+    extends MessageNonSendableElementBase,
+        MessageCommonElementRaw {}
+
+declare interface MessageSendableElementRaw
+    extends MessageSendableElementBase,
+        MessageCommonElementRaw {
+    type: "raw";
+    raw: any;
+}
+
+declare interface MessageEntity {
     uid: string;
     name: string;
     memberName: string;

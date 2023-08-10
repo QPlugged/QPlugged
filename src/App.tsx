@@ -15,6 +15,7 @@ import {
     experimental_extendTheme,
 } from "@mui/material";
 import { zhCN } from "@mui/material/locale";
+import { getCurrent } from "@tauri-apps/plugin-window";
 import { useEffect, useMemo, useState } from "react";
 import { RouterProvider, createHashRouter } from "react-router-dom";
 
@@ -131,6 +132,11 @@ function App() {
                 messaging: new MessagingImpl(internalApi),
             };
     }, [internalApiState]);
+
+    useEffect(() => {
+        const win = getCurrent();
+        win.setDecorations(true);
+    }, []);
 
     return (
         <Experimental_CssVarsProvider theme={theme} defaultMode="system">

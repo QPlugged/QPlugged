@@ -39,6 +39,7 @@
 				"title": "QPlugged",
 				"width": 800,
 				"height": 600,
+				"decorations":false,
 				"windowEffects":{
 					"effects": ["mica"]
 				}
