@@ -7,6 +7,7 @@ import {
     decodeFaceElement,
     decodeImageElement,
     decodeRawElement,
+    decodeReplyElement,
     decodeTextElement,
 } from "./decoder";
 import { encodeGroup, encodeMessage, encodeUser } from "./encoder";
@@ -50,7 +51,7 @@ export class MessagingImpl
         entity: Entity,
         messageCount: number,
         fromMessageId = "0",
-        specialFlag = true,
+        queryOrder = true,
     ): Promise<Message[]> {
         const res = await this.nt.send(
             "nodeIKernelMsgService/getMsgsIncludeSelf",
@@ -58,7 +59,29 @@ export class MessagingImpl
                 peer: decodeEntity(entity),
                 msgId: fromMessageId,
                 cnt: messageCount,
-                queryOrder: specialFlag,
+                queryOrder: queryOrder,
+            },
+            undefined,
+        );
+        const messages = (res.msgList as any[]).map((raw) =>
+            encodeMessage(raw, this.media),
+        );
+        return messages;
+    }
+
+    async getPreviousMessagesBySeq(
+        entity: Entity,
+        messageCount: number,
+        messageSeq: string,
+        queryOrder = true,
+    ): Promise<Message[]> {
+        const res = await this.nt.send(
+            "nodeIKernelMsgService/getMsgsBySeqAndCount",
+            {
+                peer: decodeEntity(entity),
+                msgSeq: messageSeq,
+                cnt: messageCount,
+                queryOrder: queryOrder,
             },
             undefined,
         );
@@ -70,7 +93,7 @@ export class MessagingImpl
 
     async sendMessage(
         entity: Entity,
-        elements: MessageElement[],
+        elements: MessageSendableElement[],
     ): Promise<string> {
         await this.nt.send(
             "nodeIKernelMsgService/sendMsg",
@@ -80,11 +103,12 @@ export class MessagingImpl
                 msgElements: await Promise.all(
                     elements.map(async (element) => {
                         return {
+                            reply: decodeReplyElement,
                             text: decodeTextElement,
-                            image: (element: MessageElementImage) =>
+                            image: (element: MessageSendableElementImage) =>
                                 decodeImageElement(
                                     this.media.prepareImageElement(
-                                        element.files[0],
+                                        element.file,
                                         element.imageType,
                                     ),
                                 ),

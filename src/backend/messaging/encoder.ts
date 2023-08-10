@@ -1,7 +1,10 @@
 import toURL from "../../utils/toURL";
 import { MessagingMedia } from "./media";
 
-export function encodeReplyElement(ele: any, msg: any): MessageElementReply {
+export function encodeReplyElement(
+    ele: any,
+    msg: any,
+): MessageNonSendableElementReply {
     return {
         type: "reply",
         id: ele.elementId,
@@ -11,7 +14,28 @@ export function encodeReplyElement(ele: any, msg: any): MessageElementReply {
     };
 }
 
-export function encodeTextElement(ele: any): MessageElementText {
+export function encodeRevokeElement(ele: any): MessageNonSendableElementRevoke {
+    return {
+        type: "revoke",
+        id: ele.elementId,
+        operator: {
+            name: ele.grayTipElement.revokeElement.operatorNick || "",
+            memberName:
+                ele.grayTipElement.revokeElement.operatorMemRemark || "",
+            uid: ele.grayTipElement.revokeElement.operatorUid,
+        },
+        sender: {
+            name: ele.grayTipElement.revokeElement.origMsgSenderNick,
+            memberName:
+                ele.grayTipElement.revokeElement.origMsgSenderMemRemark || "",
+            uid: ele.grayTipElement.revokeElement.origMsgSenderUid,
+        },
+        isRevokedBySelf: ele.grayTipElement.revokeElement.isSelfOperate,
+        raw: ele,
+    };
+}
+
+export function encodeTextElement(ele: any): MessageNonSendableElementText {
     return {
         type: "text",
         id: ele.elementId,
@@ -25,7 +49,7 @@ export function encodeImageElement(
     media: MessagingMedia,
     messageId: string,
     entity: Entity,
-): MessageElementImage {
+): MessageNonSendableElementImage {
     return {
         type: "image",
         id: ele.elementId,
@@ -54,7 +78,7 @@ export function encodeImageElement(
     };
 }
 
-export function encodeFaceElement(ele: any): MessageElementFace {
+export function encodeFaceElement(ele: any): MessageNonSendableElementFace {
     return {
         type: "face",
         id: ele.elementId,
@@ -71,7 +95,7 @@ export function encodeFaceElement(ele: any): MessageElementFace {
     };
 }
 
-export function encodeRawElement(ele: any): MessageElementRaw {
+export function encodeRawElement(ele: any): MessageNonSendableElementRaw {
     return {
         type: "raw",
         id: ele.elementId,
@@ -89,20 +113,30 @@ export function encodeMessage(raw: any, media: MessagingMedia): Message {
     };
 
     const progress: Promise<void>[] = [];
-    const elements = (raw.elements as any[]).map((ele): MessageElement => {
-        return (
-            {
-                1: encodeTextElement,
-                2: (ele: any) => {
-                    const element = encodeImageElement(ele, media, id, entity);
-                    progress.push(element.progress!);
-                    return element;
-                },
-                6: encodeFaceElement,
-                7: (ele: any) => encodeReplyElement(ele, raw),
-            }[ele.elementType as number] || encodeRawElement
-        )(ele);
-    });
+    const elements = (raw.elements as any[]).map(
+        (ele): MessageNonSendableElement => {
+            return (
+                {
+                    1: encodeTextElement,
+                    2: (ele: any) => {
+                        const element = encodeImageElement(
+                            ele,
+                            media,
+                            id,
+                            entity,
+                        );
+                        progress.push(element.progress!);
+                        return element;
+                    },
+                    6: encodeFaceElement,
+                    7: (ele: any) => encodeReplyElement(ele, raw),
+                    8: { 1: encodeRevokeElement }[
+                        ele.grayTipElement?.subElementType as number
+                    ],
+                }[ele.elementType as number] || encodeRawElement
+            )(ele);
+        },
+    );
     return {
         id: id,
         seq: raw.msgSeq,

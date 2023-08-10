@@ -11,8 +11,18 @@ declare interface Messaging extends MessagingEventEmitter {
         entity: Entity,
         messageCount: number,
         fromMessageId?: string,
+        queryOrder?: boolean,
     ): Promise<Message[]>;
-    sendMessage(entity: Entity, elements: MessageElement[]): Promise<string>;
+    getPreviousMessagesBySeq(
+        entity: Entity,
+        messageCount: number,
+        messageSeq: string,
+        queryOrder = true,
+    ): Promise<Message[]>;
+    sendMessage(
+        entity: Entity,
+        elements: SendableMessageElement[],
+    ): Promise<string>;
     getAvatars(entities: Entity[]): Promise<Map<Entity, string>>;
     getUserInfo(uid: string): Promise<User>;
     getGroupInfo(uid: string): Promise<Group>;
@@ -24,44 +34,95 @@ declare interface Message {
     id: string;
     seq: string;
     entity: Entity;
-    sender: Sender;
+    sender: MessageEntity;
     timestamp: number;
     elements: MessageElement[];
     progress: Promise<void[]>;
     raw: any;
 }
 
-declare type MessageElement =
-    | MessageElementReply
-    | MessageElementText
-    | MessageElementImage
-    | MessageElementFace
-    | MessageElementRaw;
+declare type MessageNonSendableElement =
+    | MessageNonSendableElementReply
+    | MessageNonSendableElementRevoke
+    | MessageNonSendableElementText
+    | MessageNonSendableElementImage
+    | MessageNonSendableElementFace
+    | MessageNonSendableElementRaw;
 
-declare interface MessageElementBase {
-    id?: string;
-    raw?: any;
+declare type MessageSendableElement =
+    | MessageSendableElementReply
+    | MessageSendableElementText
+    | MessageSendableElementImage
+    | MessageSendableElementFace
+    | MessageSendableElementRaw;
+
+declare interface MessageNonSendableElementBase {
+    id: string;
+    raw: any;
 }
 
-declare interface MessageElementReply extends MessageElementBase {
+declare type MessageSendableElementBase = {};
+
+interface MessageCommonElementReply {
     type: "reply";
     sender: string;
     messageSeq: string;
 }
 
-declare interface MessageElementText extends MessageElementBase {
+declare interface MessageNonSendableElementReply
+    extends MessageNonSendableElementBase,
+        MessageCommonElementReply {}
+
+declare interface MessageSendableElementReply
+    extends MessageSendableElementBase,
+        MessageCommonElementReply {
+    messageId: string;
+    messageSummary: string;
+}
+
+interface MessageCommonElementRevoke {
+    type: "revoke";
+    operator: MessageEntity;
+    sender: MessageEntity;
+    isRevokedBySelf: boolean;
+}
+
+declare interface MessageNonSendableElementRevoke
+    extends MessageNonSendableElementBase,
+        MessageCommonElementRevoke {}
+
+interface MessageCommonElementText {
     type: "text";
     content: string;
 }
 
+declare interface MessageNonSendableElementText
+    extends MessageNonSendableElementBase,
+        MessageCommonElementText {}
+
+declare interface MessageSendableElementText
+    extends MessageSendableElementBase,
+        MessageCommonElementText {}
+
 declare type MessageElementImageType = "typcial" | "sticker" | [number, number];
 
-declare interface MessageElementImage extends MessageElementBase {
+interface MessageCommonElementImage {
     type: "image";
-    files: string[];
     imageType: MessageElementImageType;
-    progress?: Promise<void>;
+}
+
+declare interface MessageNonSendableElementImage
+    extends MessageNonSendableElementBase,
+        MessageCommonElementImage {
+    files: string[];
+    progress: Promise<void>;
     width: number;
+}
+
+declare interface MessageSendableElementImage
+    extends MessageSendableElementBase,
+        MessageCommonElementImage {
+    file: string;
 }
 
 declare type MessageElementFaceType =
@@ -70,19 +131,38 @@ declare type MessageElementFaceType =
     | "big"
     | number;
 
-declare interface MessageElementFace extends MessageElementBase {
+interface MessageCommonElementFace {
     type: "face";
     faceType: MessageElementFaceType;
     faceId: number;
     faceBigId?: number;
 }
 
-declare interface MessageElementRaw extends MessageElementBase {
+declare interface MessageNonSendableElementFace
+    extends MessageNonSendableElementBase,
+        MessageCommonElementFace {}
+
+declare interface MessageSendableElementFace
+    extends MessageSendableElementBase,
+        MessageCommonElementFace {}
+
+interface MessageCommonElementRaw {
     type: "raw";
     raw: any;
 }
 
-declare interface Sender {
+declare interface MessageNonSendableElementRaw
+    extends MessageNonSendableElementBase,
+        MessageCommonElementRaw {}
+
+declare interface MessageSendableElementRaw
+    extends MessageSendableElementBase,
+        MessageCommonElementRaw {
+    type: "raw";
+    raw: any;
+}
+
+declare interface MessageEntity {
     uid: string;
     name: string;
     memberName: string;

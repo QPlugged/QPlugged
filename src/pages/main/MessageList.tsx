@@ -18,52 +18,95 @@ import {
 import { css } from "@emotion/react";
 import dayjs from "dayjs";
 import toURL from "../../utils/toURL";
+import { messageElementsToString } from "../../backend/messaging/converter";
 
-// function MessageItemElementReply({
-//     element,
-//     entity,
-//     getMessageBySeq,
-// }: {
-//     element: MessageElementReply;
-//     entity: Entity;
-//     getMessageBySeq: (seq: string) => Promise<Message>;
-// }) {
-//     const api = useContext(ApiContext);
-//     const [sourceMessage, setSourceMessage] = useState<Message>();
+function MessageItemElementReply({
+    element,
+    entity,
+}: {
+    element: MessageNonSendableElementReply;
+    entity: Entity;
+}) {
+    const api = useContext(ApiContext);
+    const [sourceMessage, setSourceMessage] = useState<Message>();
 
-//     useEffect(() => {
-//         (async () => {
-//             console.log(element.raw.replyElement.sourceMsgIdInRecords);
-//             api.messaging
-//                 .getPreviousMessages(
-//                     entity,
-//                     7,
-//                     element.raw.replyElement.sourceMsgIdInRecords,
-//                     false,
-//                 )
-//                 .then((msg) => console.log(msg));
-//             // const sourceMessage = await getMessageBySeq(element.messageSeq);
-//             // setSourceMessage(sourceMessage);
-//         })();
-//     }, [element, entity, api]);
+    useEffect(() => {
+        (async () => {
+            const messages = await api.messaging.getPreviousMessagesBySeq(
+                entity,
+                7,
+                element.raw.replyElement.replayMsgSeq,
+                false,
+            );
+            setSourceMessage(messages[0]);
+        })();
+    }, [element, entity, api]);
 
-//     return (
-//         <Stack>
-//             {sourceMessage && (
-//                 <Typography variant="body1">
-//                     {sourceMessage.sender.memberName ||
-//                         sourceMessage.sender.name}
-//                     {`${messageElementsToString(sourceMessage.elements)}seq${
-//                         sourceMessage.seq
-//                     }realseq${element.messageSeq}`}
-//                     {JSON.stringify(element.raw)}
-//                 </Typography>
-//             )}
-//         </Stack>
-//     );
-// }
+    return (
+        <Stack direction="row" gap={1} paddingBottom={1}>
+            <Box
+                bgcolor="secondary.main"
+                width="3px"
+                borderRadius="1.5px"
+                flexShrink={0}
+            />
+            {sourceMessage && (
+                <Stack direction="column" gap={0.5}>
+                    <Typography variant="body2" color="secondary.main">
+                        {sourceMessage.sender.memberName ||
+                            sourceMessage.sender.name}
+                    </Typography>
+                    <Typography
+                        variant="body2"
+                        overflow="hidden"
+                        textOverflow="ellipsis"
+                        sx={{
+                            display: "-webkit-box",
+                            WebkitBoxOrient: "vertical",
+                            WebkitLineClamp: "2",
+                        }}
+                    >
+                        {messageElementsToString(sourceMessage.elements)}
+                    </Typography>
+                </Stack>
+            )}
+        </Stack>
+    );
+}
 
-function MessageItemElementText({ element }: { element: MessageElementText }) {
+function MessageItemElementRevoke({
+    element,
+}: {
+    element: MessageNonSendableElementRevoke;
+}) {
+    return (
+        <Typography fontStyle="italic">
+            {element.operator.uid !== element.sender.uid ? (
+                <>
+                    <Typography color="primary.main" component="span">
+                        {element.operator.memberName || element.operator.name}
+                    </Typography>{" "}
+                    撤回了{" "}
+                    <Typography color="secondary.main" component="span">
+                        {element.sender.memberName || element.sender.name}
+                    </Typography>{" "}
+                    的一条消息。
+                </>
+            ) : (
+                <>
+                    <Typography color="secondary.main" component="span">
+                        {element.sender.memberName || element.sender.name}
+                    </Typography>{" "}
+                    撤回了一条消息。
+                </>
+            )}
+        </Typography>
+    );
+}
+
+function MessageItemElementText({
+    element,
+}: { element: MessageNonSendableElementText }) {
     return (
         <Typography component="span" variant="body1">
             {element.content}
@@ -74,7 +117,7 @@ function MessageItemElementText({ element }: { element: MessageElementText }) {
 function MessageItemElementImage({
     element,
     onlyHaveImage,
-}: { element: MessageElementImage; onlyHaveImage: boolean }) {
+}: { element: MessageNonSendableElementImage; onlyHaveImage: boolean }) {
     const [currentFile, setCurrentFile] = useState<number>(0);
     const [failed, setFailed] = useState<boolean>(false);
     const [loading, setLoading] = useState<boolean>(true);
@@ -134,7 +177,7 @@ function MessageItemElementImage({
 function MessageItemElementFace({
     element,
     faceResourceDir,
-}: { element: MessageElementFace; faceResourceDir: string }) {
+}: { element: MessageNonSendableElementFace; faceResourceDir: string }) {
     const url = useMemo(
         () => toURL(`${faceResourceDir}/gif/s${element.faceId}.gif`),
         [element, faceResourceDir],
@@ -152,6 +195,7 @@ function MessageItem({
     lastMessage,
     message,
     nextMessage,
+    entity,
     avatar,
     loggedInAccount,
     faceResourceDir,
@@ -163,7 +207,6 @@ function MessageItem({
     avatar: string;
     loggedInAccount: Account;
     faceResourceDir: string;
-    getMessageBySeq: (seq: string) => Promise<Message>;
 }) {
     const isFirstMessageSent = useMemo(
         () => !lastMessage || lastMessage.sender.uid !== message.sender.uid,
@@ -204,10 +247,11 @@ function MessageItem({
                 message.elements[0].type === "face"),
         [message],
     );
-    const isTimeFloat = useMemo(
+    const isTimeStatic = useMemo(
         () =>
-            message.elements[message.elements.length - 1].type !== "text" &&
-            message.elements[message.elements.length - 1].type !== "face",
+            message.elements[message.elements.length - 1].type === "text" ||
+            message.elements[message.elements.length - 1].type === "face" ||
+            message.elements[message.elements.length - 1].type === "revoke",
         [message],
     );
     const onlyHaveImage = useMemo(
@@ -297,7 +341,7 @@ function MessageItem({
                             ? 0.35
                             : 1.5
                     }
-                    paddingBottom={onlyHaveImage ? 0 : isTimeFloat ? 1 : 2}
+                    paddingBottom={onlyHaveImage ? 0 : isTimeStatic ? 2 : 1}
                     minWidth={isMessageSizeLimited ? 100 : "auto"}
                 >
                     {message.elements.map((element) => {
@@ -320,15 +364,18 @@ function MessageItem({
                                     faceResourceDir={faceResourceDir}
                                 />
                             );
-                        // else if (element.type === "reply")
-                        //     child = (
-                        //         <MessageItemElementReply
-                        //             element={element}
-                        //             entity={entity}
-                        //             getMessageBySeq={getMessageBySeq}
-                        //         />
-                        //     );
-                        // else child = JSON.stringify(element);
+                        else if (element.type === "reply")
+                            child = (
+                                <MessageItemElementReply
+                                    element={element}
+                                    entity={entity}
+                                />
+                            );
+                        else if (element.type === "revoke")
+                            child = (
+                                <MessageItemElementRevoke element={element} />
+                            );
+                        else child = JSON.stringify(element);
                         return <Fragment key={element.id!}>{child}</Fragment>;
                     })}
                     <Stack
@@ -343,7 +390,7 @@ function MessageItem({
                         justifyContent="center"
                         color="text.secondary"
                         sx={{
-                            ...(isTimeFloat && {
+                            ...(!isTimeStatic && {
                                 bgcolor: "rgb(0,0,0,0.5)",
                                 backdropFilter: "blur(10px)",
                                 borderTopLeftRadius: 8,
@@ -366,7 +413,6 @@ export default function MessageList({ entity }: { entity: Entity }) {
     const [authData, setAuthData] = useState<Account>();
     const [faceResourceDir, setFaceResourceDir] = useState<string>();
     const [messages, setMessages] = useState<[number, Message][]>([]);
-    const [messagesSeq, setMessagesSeq] = useState<string[]>([]);
     const [avatars, setAvatars] = useState<Record<string, string>>({});
     const [atTop, setAtTop] = useState<boolean>(false);
     const [firstItemIndex, setFirstItemIndex] = useState<number>(START_INDEX);
@@ -421,10 +467,6 @@ export default function MessageList({ entity }: { entity: Entity }) {
                     ],
                 );
                 setMessages((oldMessages) => [...newMessages, ...oldMessages]);
-                setMessagesSeq((oldMessagesSeq) => [
-                    ...newMessages.map(([_, message]) => message.seq),
-                    ...oldMessagesSeq,
-                ]);
                 setFirstItemIndex(
                     (oldFirstItemIndex) => oldFirstItemIndex - MESSAGE_COUNT,
                 );
@@ -432,22 +474,6 @@ export default function MessageList({ entity }: { entity: Entity }) {
             return oldMessages;
         });
     }, [entity, api, atTop]);
-
-    const getMessageBySeq = useCallback(
-        async (seq: string) => {
-            const MAX_TRIES = 1;
-            for (let i = 0; i < MAX_TRIES; i++) {
-                const idx = messagesSeq.indexOf(seq);
-                const message = messages?.[idx]?.[1];
-                if (message) return message;
-                else await fetchMoreMessages();
-            }
-            throw new Error(
-                `无法通过 seq ${seq} 找到消息，已尝试 ${MAX_TRIES} 次`,
-            );
-        },
-        [messagesSeq, messages, fetchMoreMessages],
-    );
 
     useEffect(() => {
         (async () => {
@@ -460,7 +486,6 @@ export default function MessageList({ entity }: { entity: Entity }) {
 
     useEffect(() => {
         setMessages([]);
-        setMessagesSeq([]);
         setAvatars({});
         setAtTop(false);
         setFirstItemIndex(START_INDEX);
@@ -489,7 +514,6 @@ export default function MessageList({ entity }: { entity: Entity }) {
                     avatar={avatars[message.sender.uid]}
                     loggedInAccount={authData!}
                     faceResourceDir={faceResourceDir!}
-                    getMessageBySeq={getMessageBySeq}
                 />
             )}
         />

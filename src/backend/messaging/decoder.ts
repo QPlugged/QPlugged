@@ -1,4 +1,24 @@
-export function decodeTextElement(element: MessageElementText) {
+export function decodeReplyElement(element: MessageSendableElementReply) {
+    return {
+        elementType: 7,
+        elementId: "",
+        replyElement: {
+            replayMsgId: element.messageId,
+            replayMsgSeq: element.messageSeq,
+            sourceMsgText: element.messageSummary,
+            senderUid: element.sender,
+            senderUidStr: element.sender,
+            replyMsgClientSeq: "",
+            replyMsgTime: "",
+            replyMsgRevokeType: 0,
+            sourceMsgTextElems: [],
+            sourceMsgIsIncPic: false,
+            sourceMsgExpired: false,
+        },
+    };
+}
+
+export function decodeTextElement(element: MessageSendableElementText) {
     return {
         elementType: 1,
         elementId: "",
@@ -20,7 +40,7 @@ export function decodeImageElement(data: any) {
     };
 }
 
-export function decodeFaceElement(element: MessageElementFace) {
+export function decodeFaceElement(element: MessageSendableElementFace) {
     return {
         elementType: 6,
         elementId: "",
@@ -45,32 +65,7 @@ export function decodeFaceElement(element: MessageElementFace) {
     };
 }
 
-// export function decodeReplyElement(element: MessageElementReply) {
-//     return {
-//         elementType: 7,
-//         elementId: "",
-//         replyElement: {
-//             faceType:
-//                 {
-//                     "typcial-1": 1,
-//                     "typcial-2": 2,
-//                     big: 3,
-//                 }[element.faceType] || element.faceType,
-//             faceIndex: element.faceId,
-//             ...(element.faceType === "big" && {
-//                 packId: "1",
-//                 stickerId: (element.faceBigId || "0").toString(),
-//                 stickerType: 1,
-//                 sourceType: 1,
-//                 resultId: "",
-//                 superisedId: "",
-//                 randomType: 1,
-//             }),
-//         },
-//     };
-// }
-
-export function decodeRawElement(element: MessageElementRaw) {
+export function decodeRawElement(element: MessageSendableElementRaw) {
     return element.raw;
 }
 
