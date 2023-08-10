@@ -1,4 +1,3 @@
-import { getCurrent } from "@tauri-apps/plugin-window";
 import { Api, ApiContext } from "./Api";
 import { InternalApi } from "./backend/api";
 import { LoginImpl } from "./backend/login";
@@ -16,6 +15,7 @@ import {
     experimental_extendTheme,
 } from "@mui/material";
 import { zhCN } from "@mui/material/locale";
+import { getCurrent } from "@tauri-apps/plugin-window";
 import { useEffect, useMemo, useState } from "react";
 import { RouterProvider, createHashRouter } from "react-router-dom";
 

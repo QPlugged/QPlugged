@@ -1,3 +1,15 @@
+import { ApiContext } from "../../Api";
+import { messageElementsToString } from "../../backend/messaging/converter";
+import toURL from "../../utils/toURL";
+import { css } from "@emotion/react";
+import {
+    Avatar,
+    Box,
+    CircularProgress,
+    Stack,
+    Typography,
+} from "@mui/material";
+import dayjs from "dayjs";
 import {
     Fragment,
     useCallback,
@@ -6,19 +18,7 @@ import {
     useMemo,
     useState,
 } from "react";
-import { ApiContext } from "../../Api";
 import { Virtuoso } from "react-virtuoso";
-import {
-    Avatar,
-    Box,
-    CircularProgress,
-    Stack,
-    Typography,
-} from "@mui/material";
-import { css } from "@emotion/react";
-import dayjs from "dayjs";
-import toURL from "../../utils/toURL";
-import { messageElementsToString } from "../../backend/messaging/converter";
 
 function MessageItemElementReply({
     element,

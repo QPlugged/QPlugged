@@ -1,22 +1,22 @@
-import { useContext, useState, useEffect } from "react";
 import { ApiContext } from "../../Api";
 import {
-    userToEntity,
     groupToEntity,
     messageElementsToString,
+    userToEntity,
 } from "../../backend/messaging/converter";
+import Scrollbar from "../../components/Scrollbar";
 import {
+    Avatar,
     List,
     ListItem,
-    ListItemButton,
     ListItemAvatar,
-    Avatar,
+    ListItemButton,
     ListItemText,
     Typography,
 } from "@mui/material";
 import dayjs from "dayjs";
 import equal from "fast-deep-equal";
-import Scrollbar from "../../components/Scrollbar";
+import { useContext, useEffect, useState } from "react";
 
 interface RecentContact {
     entity: Entity;

@@ -1,9 +1,9 @@
-import { LogicalSize, getCurrent } from "@tauri-apps/plugin-window";
-import { useEffect, useState } from "react";
-import RecentContactList from "./RecentContactList";
-import { Stack } from "@mui/material";
 import Resizer from "../../components/Resizer";
 import MessageList from "./MessageList";
+import RecentContactList from "./RecentContactList";
+import { Stack } from "@mui/material";
+import { LogicalSize, getCurrent } from "@tauri-apps/plugin-window";
+import { useEffect, useState } from "react";
 
 export function MainPage() {
     const [leftPanelWidth, setLeftPanelWidth] = useState<number>(300);
