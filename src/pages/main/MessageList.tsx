@@ -318,11 +318,15 @@ function MessageItem({
             >
                 {showName && (
                     <Typography
+                        position="absolute"
+                        left={0}
+                        right={0}
+                        top={0}
+                        height={32}
                         color="primary.main"
                         variant="body2"
                         fontSize={15}
                         padding={1.25}
-                        paddingBottom={0}
                         overflow="hidden"
                         textOverflow="ellipsis"
                         whiteSpace="nowrap"
@@ -335,14 +339,14 @@ function MessageItem({
                     paddingTop={
                         onlyHaveImage
                             ? showName
-                                ? 0.5
+                                ? 4.5
                                 : 0
                             : showName
-                            ? 0.35
+                            ? 4.35
                             : 1.5
                     }
                     paddingBottom={onlyHaveImage ? 0 : isTimeStatic ? 2 : 1}
-                    minWidth={isMessageSizeLimited ? 100 : "auto"}
+                    minWidth={isMessageSizeLimited ? 150 : "auto"}
                 >
                     {message.elements.map((element) => {
                         let child: React.ReactNode;
