@@ -2471,6 +2471,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"innosetup-compiler@npm:^6.2.0":
+  version: 6.2.0
+  resolution: "innosetup-compiler@npm:6.2.0"
+  bin:
+    innosetup-compiler: lib/iscc
+  checksum: 4187783871e6aa739b690dac6e4eb4d2687cfcd8a372770089abbf0fa6c470f11201d14432ceba9f6d27715dacf50e966eaf897c30faf1a4276fcdcdb71e7538
+  languageName: node
+  linkType: hard
+
 "internal-ip@npm:^7.0.0":
   version: 7.0.0
   resolution: "internal-ip@npm:7.0.0"
@@ -3221,6 +3230,7 @@ __metadata:
     dayjs: ^1.11.9
     eventemitter3: ^5.0.1
     fast-deep-equal: ^3.1.3
+    innosetup-compiler: ^6.2.0
     internal-ip: ^7.0.0
     nanoid: ^4.0.2
     react: ^18.2.0

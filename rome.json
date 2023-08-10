@@ -14,7 +14,8 @@
             ".pnp.cjs",
             ".pnp.loader.mjs",
             "dist",
-            "src-tauri"
+            "src-tauri/target",
+            "src-tauri/src"
         ]
     },
     "linter": {

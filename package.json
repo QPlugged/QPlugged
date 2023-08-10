@@ -5,14 +5,12 @@
     "version": "0.0.0",
     "type": "module",
     "scripts": {
-        "dev": "vite",
-        "build": "tsc && vite build",
-        "preview": "vite preview",
+        "dev": "tauri dev",
+        "build": "tauri build && node ./build/postbuild.cjs",
         "lint": "rome check .",
         "lint:apply": "rome check . --apply",
         "lint:apply-unsafe": "rome check . --apply-unsafe",
-        "format": "rome format . --write",
-        "tauri": "tauri"
+        "format": "rome format . --write"
     },
     "dependencies": {
         "@emotion/react": "^11.11.1",
@@ -41,6 +39,7 @@
         "@types/ungap__structured-clone": "^0.3.0",
         "@vitejs/plugin-react": "^4.0.3",
         "@yarnpkg/sdks": "^3.0.0-rc.48",
+        "innosetup-compiler": "^6.2.0",
         "internal-ip": "^7.0.0",
         "rome": "^12.1.3",
         "typescript": "^5.1.6",

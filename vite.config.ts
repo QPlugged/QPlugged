@@ -8,6 +8,9 @@ const mobile = !!/android|ios/.exec(process.env.TAURI_PLATFORM);
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
     plugins: [react()],
+    build: {
+        chunkSizeWarningLimit: Infinity,
+    },
 
     // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
     //

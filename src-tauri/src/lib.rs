@@ -1,19 +1,25 @@
-use tauri::Manager;
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_window::init())
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
-            let window = app.get_window("main").unwrap();
-            #[cfg(target_os = "windows")]
+            let window = tauri::Manager::get_window(app, "main").unwrap();
+            #[cfg(desktop)]
             {
-                window.minimize().unwrap();
-                window.unminimize().unwrap();
-
-                window.maximize().unwrap();
-                window.unmaximize().unwrap();
+                window
+                    .set_size(tauri::LogicalSize {
+                        width: 0.0,
+                        height: 0.0,
+                    })
+                    .unwrap();
+                window
+                    .set_size(tauri::LogicalSize {
+                        width: 800.0,
+                        height: 600.0,
+                    })
+                    .unwrap();
+                window.set_decorations(true).unwrap();
             }
             Ok(())
         })
