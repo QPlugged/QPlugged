@@ -73,7 +73,8 @@ function MessageItemElementText({ element }: { element: MessageElementText }) {
 
 function MessageItemElementImage({
     element,
-}: { element: MessageElementImage }) {
+    onlyHaveImage,
+}: { element: MessageElementImage; onlyHaveImage: boolean }) {
     const [currentFile, setCurrentFile] = useState<number>(0);
     const [failed, setFailed] = useState<boolean>(false);
     const [loading, setLoading] = useState<boolean>(true);
@@ -82,15 +83,17 @@ function MessageItemElementImage({
 
     return (
         <Stack
-            borderRadius={8}
+            borderRadius={onlyHaveImage ? 0 : 2}
             width={`${Math.min(element.width!, 300)}px`}
             height={
                 loading || failed
                     ? `${Math.min(element.width!, 300) * 0.9}px`
                     : "auto"
             }
+            overflow="hidden"
             position="relative"
         >
+            {onlyHaveImage}
             <Box
                 position="absolute"
                 left="50%"
@@ -109,7 +112,6 @@ function MessageItemElementImage({
                 alt="图片"
                 css={css({
                     width: "100%",
-                    borderRadius: 8,
                     opacity: loading || failed ? 0 : 1,
                     transition: "opacity 0.1s ease",
                 })}
@@ -208,9 +210,16 @@ function MessageItem({
             message.elements[message.elements.length - 1].type !== "face",
         [message],
     );
+    const onlyHaveImage = useMemo(
+        () =>
+            message.elements.length === 1 &&
+            message.elements[0].type === "image",
+        [message],
+    );
 
     const RADIUS_BIG = 18;
     const RADIUS_SMALL = 6;
+
     return (
         <Stack
             width="100%"
@@ -278,9 +287,17 @@ function MessageItem({
                     </Typography>
                 )}
                 <Box
-                    padding={1.5}
-                    paddingTop={showName ? 0.35 : 1.5}
-                    paddingBottom={isTimeFloat ? 1 : 2}
+                    padding={onlyHaveImage ? 0 : 1.5}
+                    paddingTop={
+                        onlyHaveImage
+                            ? showName
+                                ? 0.5
+                                : 0
+                            : showName
+                            ? 0.35
+                            : 1.5
+                    }
+                    paddingBottom={onlyHaveImage ? 0 : isTimeFloat ? 1 : 2}
                     minWidth={isMessageSizeLimited ? 100 : "auto"}
                 >
                     {message.elements.map((element) => {
@@ -291,7 +308,10 @@ function MessageItem({
                             );
                         else if (element.type === "image")
                             child = (
-                                <MessageItemElementImage element={element} />
+                                <MessageItemElementImage
+                                    element={element}
+                                    onlyHaveImage={onlyHaveImage}
+                                />
                             );
                         else if (element.type === "face")
                             child = (
