@@ -141,13 +141,13 @@ export class MessagingImpl
                 if (user.uid === uid) {
                     resolve(user);
                     this.nt.off(
-                        "nodeIKernelProfileListener/onProfileSimpleChanged",
+                        "nodeIKernelProfileListener/onProfileDetailInfoChanged",
                         listener,
                     );
                 }
             };
             this.nt.on(
-                "nodeIKernelProfileListener/onProfileSimpleChanged",
+                "nodeIKernelProfileListener/onProfileDetailInfoChanged",
                 listener,
             );
         });
