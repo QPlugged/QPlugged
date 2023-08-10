@@ -1,5 +1,4 @@
 import { Box } from "@mui/material";
-import { grey } from "@mui/material/colors";
 import { useCallback, useEffect, useState } from "react";
 
 export default function Resizer({
