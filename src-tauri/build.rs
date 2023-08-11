@@ -7,18 +7,15 @@ fn main() {
     let pkg_manager = "yarn";
     let profile = std::env::var("PROFILE").unwrap();
     Command::new(pkg_manager)
-        .args([
-            "exec",
-            &format!(
-                "NODE_ENV=
-        {} node ./build/prebuild.cjs",
-                match profile.as_str() {
-                    "debug" => "development",
-                    _ => "production",
-                }
-            ),
-        ])
+        .args(["node", "./build/prebuild.cjs"])
         .current_dir(env::current_dir().unwrap().join(".."))
+        .env(
+            "NODE_ENV",
+            match profile.as_str() {
+                "debug" => "development",
+                _ => "production",
+            },
+        )
         .output()
         .unwrap();
     tauri_build::build()

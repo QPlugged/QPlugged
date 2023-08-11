@@ -136,7 +136,6 @@ function MessageItemElementImage({
             overflow="hidden"
             position="relative"
         >
-            {onlyHaveImage}
             <Box
                 position="absolute"
                 left="50%"
@@ -149,7 +148,6 @@ function MessageItemElementImage({
                     <Typography>加载失败</Typography>
                 ) : null}
             </Box>
-
             <img
                 src={element.files[currentFile]}
                 alt="图片"
