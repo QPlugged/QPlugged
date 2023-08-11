@@ -1,10 +1,19 @@
+use std::sync::Mutex;
+
+use launcher::{initialize_nt, launch_nt, NTState};
+use tauri::{generate_context, Builder, Manager};
+
+mod launcher;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    Builder::default()
+        .manage(NTState(Mutex::new(false)))
+        .invoke_handler(tauri::generate_handler![initialize_nt, launch_nt])
         .plugin(tauri_plugin_window::init())
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
-            let window = tauri::Manager::get_window(app, "main").unwrap();
+            let window = app.get_window("main").unwrap();
             #[cfg(desktop)]
             {
                 window
@@ -23,6 +32,6 @@ pub fn run() {
             }
             Ok(())
         })
-        .run(tauri::generate_context!())
+        .run(generate_context!())
         .expect("error while running tauri application");
 }

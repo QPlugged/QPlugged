@@ -1,9 +1,10 @@
 {
     "build": {
         "beforeDevCommand": "yarn vite",
-        "beforeBuildCommand": "yarn tsc && yarn vite build",
+        "beforeBuildCommand": "yarn vite build",
+        "beforeBundleCommand": "yarn node ./build/prebundle.cjs",
         "devPath": "http://localhost:1420",
-        "distDir": "../dist",
+        "distDir": "../dist/vite",
         "withGlobalTauri": false
     },
     "package": {
@@ -28,7 +29,13 @@
             "assetProtocol": {
                 "enable": true,
                 "scope": ["**"]
-            }
+            },
+            "dangerousRemoteDomainIpcAccess": [
+                {
+                    "domain": "tauri.localhost",
+                    "windows": ["main"]
+                }
+            ]
         },
         "windows": [
             {

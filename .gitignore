@@ -31,3 +31,4 @@ dist-ssr
 .pnp.*
 
 out
+.tools

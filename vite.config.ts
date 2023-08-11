@@ -10,6 +10,8 @@ export default defineConfig(async () => ({
     plugins: [react()],
     build: {
         chunkSizeWarningLimit: Infinity,
+        outDir: "dist/vite",
+        emptyOutDir: true,
     },
 
     // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`

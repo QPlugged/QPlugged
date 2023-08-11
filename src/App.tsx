@@ -15,6 +15,7 @@ import {
     experimental_extendTheme,
 } from "@mui/material";
 import { zhCN } from "@mui/material/locale";
+import { tauri } from "@tauri-apps/api";
 import { useEffect, useMemo, useState } from "react";
 import { RouterProvider, createHashRouter } from "react-router-dom";
 
@@ -80,15 +81,23 @@ function App() {
     >();
     const [internalApiError, setInternalApiError] =
         useState<[number, string]>();
-    const [internalApi, _setInternalApi] = useState<InternalApi | undefined>(
-        new InternalApi("ws://127.0.0.1:15341"),
-    );
+    const [internalApi, setInternalApi] = useState<InternalApi | undefined>();
+
+    useEffect(() => {
+        (async () => {
+            let port = 15321;
+            const initialized = await tauri.invoke("initialize_nt");
+            if (!initialized) port = await tauri.invoke("launch_nt");
+            setInternalApi(new InternalApi(`ws://127.0.0.1:${port}`));
+        })().catch((reason) => {
+            setInternalApiError([-999, `启动后端失败：${reason}`]);
+            setInternalApiState("disconnected");
+        });
+    }, []);
 
     useEffect(() => {
         const listener = (event?: CloseEvent) => {
-            if (event?.code) {
-                setInternalApiError([event?.code, event?.reason]);
-            }
+            if (event?.code) setInternalApiError([event?.code, event?.reason]);
             setInternalApiState(
                 internalApi?.readyState === internalApi?.CONNECTING
                     ? "connecting"
@@ -100,25 +109,18 @@ function App() {
                     : undefined,
             );
         };
-
         listener();
-
         if (internalApi) {
             // @ts-expect-error
             internalApi.addEventListener("open", listener);
-
             // @ts-expect-error
             internalApi.addEventListener("error", listener);
-
             internalApi.addEventListener("close", listener);
-
             return () => {
                 // @ts-expect-error
                 internalApi.removeEventListener("open", listener);
-
                 // @ts-expect-error
                 internalApi.removeEventListener("error", listener);
-
                 internalApi.removeEventListener("close", listener);
             };
         }
@@ -147,7 +149,7 @@ function App() {
                         width="100%"
                         height="100%"
                     >
-                        {internalApiState === "connecting" ? (
+                        {!internalApi || internalApiState === "connecting" ? (
                             <CircularProgress />
                         ) : (
                             <Alert severity="warning">
