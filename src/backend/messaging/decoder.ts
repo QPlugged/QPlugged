@@ -32,6 +32,20 @@ export function decodeTextElement(element: MessageSendableElementText) {
     };
 }
 
+export function decodeMentionElement(element: MessageSendableElementMention) {
+    return {
+        elementType: 1,
+        elementId: "",
+        textElement: {
+            content: element.content,
+            atType: 0,
+            atUid: "",
+            atTinyId: "",
+            atNtUid: element.uid,
+        },
+    };
+}
+
 export function decodeImageElement(data: any) {
     return {
         elementType: 2,

@@ -37,7 +37,7 @@ struct NtJsData(String, String);
 async fn patch_nt(js_path: impl AsRef<path::Path>) -> io::Result<NtJsData> {
     let original_js = tokio::fs::read_to_string(&js_path).await?;
     let server_js = include_str!("../../dist/qplugged-server.js");
-    let patched_js = format!("console.log(\"[!OK]\");{server_js}{original_js}");
+    let patched_js = format!("{server_js}{original_js}");
     let js_data: NtJsData = NtJsData(original_js, patched_js);
     Ok(js_data)
 }
@@ -129,9 +129,6 @@ pub async fn launch_nt(app_handle: tauri::AppHandle) -> Result<u16, &'static str
     let original_js = js_data.0;
     let patched_js = js_data.1;
 
-    let mut is_unpatched = true;
-    let mut is_patched = false;
-
     let mut child = process::Command::new(copied_nt_executable)
         .stdout(process::Stdio::piped())
         .stderr(process::Stdio::inherit())
@@ -142,30 +139,28 @@ pub async fn launch_nt(app_handle: tauri::AppHandle) -> Result<u16, &'static str
     Ok(task::spawn_blocking(move || -> Result<u16, &'static str> {
         const PORT_START_FLAG: &str = "[QPLUGGED_INIT_PORT]";
         const PORT_END_FLAG: &str = "[/]";
+        let mut is_code_injected = false;
         let mut f = io::BufReader::new(stdout);
         loop {
             let mut buf = String::new();
             io::BufRead::read_line(&mut f, &mut buf).or(Err("cannot read stdout"))?;
             print!("{buf}");
-            if buf.contains("[preload]") && is_unpatched == true {
-                is_unpatched = false;
+            if buf.contains("[preload]") && !is_code_injected {
                 io::Write::write_all(
                     &mut fs::File::create(js_path.clone()).unwrap(),
                     patched_js.as_bytes(),
                 )
                 .or(Err("failed to write patched js data"))?;
-            } else if buf.contains("[!OK]") && is_unpatched == false && is_patched == false {
-                is_patched = true;
+                is_code_injected = true;
+            } else if buf.contains(PORT_START_FLAG)
+                && buf.contains(PORT_END_FLAG)
+                && is_code_injected
+            {
                 io::Write::write_all(
                     &mut fs::File::create(js_path.clone()).unwrap(),
                     original_js.as_bytes(),
                 )
                 .or(Err("failed to write original js data back"))?;
-            } else if buf.contains(PORT_START_FLAG)
-                && buf.contains(PORT_END_FLAG)
-                && is_unpatched == false
-                && is_patched == true
-            {
                 let s = buf.find(PORT_START_FLAG).unwrap_or(0) + PORT_START_FLAG.len();
                 let e = buf.find(PORT_END_FLAG).unwrap_or(0);
                 let port = &buf[s..e];

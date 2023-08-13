@@ -1,7 +1,7 @@
 import App from "./App";
 import ReactDOM from "react-dom/client";
 
-export const isProduction = import.meta.env.PROD;
+export const isProduction = import.meta?.env?.PROD || false;
 
 if (isProduction)
     window.addEventListener("contextmenu", (event) => event.preventDefault());

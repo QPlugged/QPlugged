@@ -1,6 +1,10 @@
 use std::{env, process::Command};
 
 fn main() {
+    println!("cargo:rerun-if-changed=../build/prebuild.cjs");
+    println!("cargo:rerun-if-changed=../src/server");
+    println!("cargo:rerun-if-changed=../package.json");
+    println!("cargo:rerun-if-changed=../yarn.lock");
     #[cfg(target_os = "windows")]
     let pkg_manager = "yarn.cmd";
     #[cfg(not(target_os = "windows"))]

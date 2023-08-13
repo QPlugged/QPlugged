@@ -19,6 +19,26 @@ import { tauri } from "@tauri-apps/api";
 import { useEffect, useMemo, useState } from "react";
 import { RouterProvider, createHashRouter } from "react-router-dom";
 
+declare module "@mui/material/styles" {
+    interface MessageColor {
+        text: string;
+        background: string;
+    }
+
+    interface Message {
+        self: MessageColor;
+        others: MessageColor;
+    }
+
+    interface Palette {
+        message: Message;
+    }
+
+    interface PaletteOptions {
+        message: Message;
+    }
+}
+
 const titleFontFamily =
     "'Segoe UI Variable Display', 'Segoe UI Variable', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif";
 const theme = experimental_extendTheme(
@@ -48,6 +68,16 @@ const theme = experimental_extendTheme(
                 palette: {
                     background: {
                         default: "#00000000",
+                    },
+                    message: {
+                        self: {
+                            text: "#fff",
+                            background: "#456993ff",
+                        },
+                        others: {
+                            text: "#fff",
+                            background: "#1c2633ff",
+                        },
                     },
                 },
             },

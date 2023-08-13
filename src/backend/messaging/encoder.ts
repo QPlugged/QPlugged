@@ -44,36 +44,47 @@ export function encodeTextElement(ele: any): MessageNonSendableElementText {
     };
 }
 
+export function encodeMentionElement(
+    ele: any,
+): MessageNonSendableElementMention {
+    return {
+        type: "mention",
+        id: ele.elementId,
+        content: ele.textElement.content,
+        uid: ele.textElement.atNtUid,
+        raw: ele,
+    };
+}
+
 export function encodeImageElement(
     ele: any,
     media: MessagingMedia,
     messageId: string,
     entity: Entity,
 ): MessageNonSendableElementImage {
+    const type: MessageElementImageType =
+        { 1001: "typical", 1000: "sticker" }[
+            ele.picElement.picType as number
+        ] || ele.picElement.picType;
     return {
         type: "image",
         id: ele.elementId,
-        files: [
-            toURL(ele.picElement.sourcePath),
-            ...[...(ele.picElement.thumbPath as Map<any, any>).values()].map(
-                (path) => toURL(path),
-            ),
-        ],
-        imageType:
-            ele.picElement.picType === 1001 && ele.picElement.picSubType === 0
-                ? "typcial"
-                : ele.picElement.picType === 1000 &&
-                  ele.picElement.picSubType === 1
-                ? "sticker"
-                : [ele.picElement.picType, ele.picElement.picSubType],
-        progress: media.downloadMedia(
-            messageId,
-            ele.elementId,
-            entity,
-            ele.picElement.thumbPath.get(0),
-            ele.picElement.sourcePath,
-        ),
+        // file:
+        //     ele.picElement.picSubType === 1
+        //         ? toURL(ele.picElement.sourcePath)
+        //         : toURL(ele.picElement.thumbPath.get(0)),
+        imageType: type,
+        imageSubType: ele.picElement.picSubType,
+        progress: media
+            .downloadMedia(
+                messageId,
+                ele.elementId,
+                entity,
+                ele.picElement.sourcePath,
+            )
+            .then((file) => toURL(file)),
         width: ele.picElement.picWidth,
+        height: ele.picElement.picHeight,
         raw: ele,
     };
 }
@@ -112,12 +123,15 @@ export function encodeMessage(raw: any, media: MessagingMedia): Message {
         memberName: raw.sendMemberName || undefined,
     };
 
-    const progress: Promise<void>[] = [];
+    const progress: Promise<string>[] = [];
     const elements = (raw.elements as any[]).map(
         (ele): MessageNonSendableElement => {
             return (
                 {
-                    1: encodeTextElement,
+                    1: (ele: any) =>
+                        ele.textElement.atType !== 0
+                            ? encodeMentionElement(ele)
+                            : encodeTextElement(ele),
                     2: (ele: any) => {
                         const element = encodeImageElement(
                             ele,

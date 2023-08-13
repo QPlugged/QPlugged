@@ -1,13 +1,45 @@
 import react from "@vitejs/plugin-react";
 import { internalIpV4 } from "internal-ip";
 import { defineConfig } from "vite";
+import obfuscatorPlugin from "vite-plugin-javascript-obfuscator";
 
-// @ts-expect-error process is a nodejs global
 const mobile = !!/android|ios/.exec(process.env.TAURI_PLATFORM);
 
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
-    plugins: [react()],
+    plugins: [
+        react(),
+        obfuscatorPlugin({
+            options: {
+                compact: true,
+                controlFlowFlattening: false,
+                deadCodeInjection: true,
+                deadCodeInjectionThreshold: 0.1,
+                debugProtection: false,
+                debugProtectionInterval: 0,
+                disableConsoleOutput: false,
+                identifierNamesGenerator: "hexadecimal",
+                log: false,
+                numbersToExpressions: false,
+                renameGlobals: false,
+                selfDefending: true,
+                simplify: true,
+                splitStrings: true,
+                stringArray: true,
+                stringArrayCallsTransform: false,
+                stringArrayEncoding: [],
+                stringArrayIndexShift: true,
+                stringArrayRotate: true,
+                stringArrayShuffle: true,
+                stringArrayWrappersCount: 1,
+                stringArrayWrappersChainedCalls: true,
+                stringArrayWrappersParametersMaxCount: 2,
+                stringArrayWrappersType: "variable",
+                stringArrayThreshold: 0.75,
+                unicodeEscapeSequence: false,
+            },
+        }),
+    ],
     build: {
         chunkSizeWarningLimit: Infinity,
         outDir: "dist/vite",

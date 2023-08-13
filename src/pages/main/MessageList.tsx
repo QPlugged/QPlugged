@@ -1,31 +1,42 @@
 import { ApiContext } from "../../Api";
 import { messageElementsToString } from "../../backend/messaging/converter";
+import Scrollbar from "../../components/Scrollbar";
 import toURL from "../../utils/toURL";
 import { css } from "@emotion/react";
 import {
     Avatar,
     Box,
+    Button,
     CircularProgress,
+    Link,
     Stack,
     Typography,
 } from "@mui/material";
+import { open } from "@tauri-apps/plugin-shell";
 import dayjs from "dayjs";
+import * as linkify from "linkifyjs";
 import {
     Fragment,
     useCallback,
     useContext,
     useEffect,
     useMemo,
+    useRef,
     useState,
 } from "react";
-import { Virtuoso } from "react-virtuoso";
+import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
+
+type JumpToMessageFunc = (message: Message) => Promise<void>;
+type ShowProfileFunc = (entity: Entity) => void;
 
 function MessageItemElementReply({
     element,
     entity,
+    jumpToMessage,
 }: {
     element: MessageNonSendableElementReply;
     entity: Entity;
+    jumpToMessage: JumpToMessageFunc;
 }) {
     const api = useContext(ApiContext);
     const [sourceMessage, setSourceMessage] = useState<Message>();
@@ -43,32 +54,41 @@ function MessageItemElementReply({
     }, [element, entity, api]);
 
     return (
-        <Stack direction="row" gap={1} paddingBottom={1}>
+        <Stack direction="row" paddingBottom={0.5} sx={{ cursor: "pointer" }}>
             <Box
                 bgcolor="secondary.main"
                 width="3px"
                 borderRadius="1.5px"
                 flexShrink={0}
+                marginTop={0.5}
+                marginBottom={0.5}
             />
+
             {sourceMessage && (
-                <Stack direction="column" gap={0.5}>
-                    <Typography variant="body2" color="secondary.main">
-                        {sourceMessage.sender.memberName ||
-                            sourceMessage.sender.name}
-                    </Typography>
-                    <Typography
-                        variant="body2"
-                        overflow="hidden"
-                        textOverflow="ellipsis"
-                        sx={{
-                            display: "-webkit-box",
-                            WebkitBoxOrient: "vertical",
-                            WebkitLineClamp: "2",
-                        }}
-                    >
-                        {messageElementsToString(sourceMessage.elements)}
-                    </Typography>
-                </Stack>
+                <Button
+                    color="inherit"
+                    onClick={() => jumpToMessage(sourceMessage)}
+                    sx={{ textTransform: "none" }}
+                >
+                    <Stack direction="column" gap={0.1} alignItems="flex-start">
+                        <Typography variant="body2" color="secondary.main">
+                            {sourceMessage.sender.memberName ||
+                                sourceMessage.sender.name}
+                        </Typography>
+                        <Typography
+                            variant="body2"
+                            overflow="hidden"
+                            textOverflow="ellipsis"
+                            sx={{
+                                display: "-webkit-box",
+                                WebkitBoxOrient: "vertical",
+                                WebkitLineClamp: "2",
+                            }}
+                        >
+                            {messageElementsToString(sourceMessage.elements)}
+                        </Typography>
+                    </Stack>
+                </Button>
             )}
         </Stack>
     );
@@ -80,25 +100,28 @@ function MessageItemElementRevoke({
     element: MessageNonSendableElementRevoke;
 }) {
     return (
-        <Typography fontStyle="italic" color="text.secondary">
+        <Typography fontStyle="italic" fontSize={12} color="text.secondary">
             {element.operator.uid !== element.sender.uid ? (
                 <>
-                    <Typography color="primary.main" component="span">
+                    <Typography
+                        color="primary.main"
+                        component="span"
+                        fontSize="inherit"
+                    >
                         {element.operator.memberName || element.operator.name}
-                    </Typography>{" "}
+                    </Typography>
                     撤回了{" "}
-                    <Typography color="secondary.main" component="span">
+                    <Typography
+                        color="secondary.main"
+                        component="span"
+                        fontSize="inherit"
+                    >
                         {element.sender.memberName || element.sender.name}
                     </Typography>{" "}
                     的一条消息。
                 </>
             ) : (
-                <>
-                    <Typography color="secondary.main" component="span">
-                        {element.sender.memberName || element.sender.name}
-                    </Typography>{" "}
-                    撤回了一条消息。
-                </>
+                "撤回了一条消息。"
             )}
         </Typography>
     );
@@ -106,11 +129,64 @@ function MessageItemElementRevoke({
 
 function MessageItemElementText({
     element,
-}: { element: MessageNonSendableElementText }) {
+}: {
+    element: MessageNonSendableElementText;
+}) {
+    const components = useMemo(() => {
+        const components: (["text", string] | ["url", string, string])[] = [];
+        let cursor = 0;
+        const ret = linkify.find(element.content, { defaultProtocol: "https" });
+        ret.map(({ start, href, end }) => {
+            components.push(
+                ["text", element.content.substring(cursor, start)],
+                ["url", href, element.content.substring(start, end)],
+            );
+            cursor = end;
+        });
+        components.push(["text", element.content.substring(cursor)]);
+        return components;
+    }, [element]);
+
     return (
-        <Typography component="span" variant="body1">
+        <>
+            {components.map(([type, ...args], idx) => (
+                // rome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+                <Fragment key={idx}>
+                    {type === "text" ? (
+                        args[0].split("\n").map((text, idx, array) => (
+                            // rome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+                            <Fragment key={idx}>
+                                <span>{text}</span>
+                                {idx !== array.length - 1 && <br />}
+                            </Fragment>
+                        ))
+                    ) : type === "url" ? (
+                        <Link component="button" onClick={() => open(args[0])}>
+                            {args[1]}
+                        </Link>
+                    ) : null}
+                </Fragment>
+            ))}
+        </>
+    );
+}
+
+function MessageItemElementMention({
+    element,
+    showProfile,
+}: {
+    element: MessageNonSendableElementMention;
+    showProfile: ShowProfileFunc;
+}) {
+    const onClick = useCallback(
+        () => showProfile({ type: "user", uid: element.uid }),
+        [element],
+    );
+
+    return (
+        <Link component="button" underline="hover" onClick={onClick}>
             {element.content}
-        </Typography>
+        </Link>
     );
 }
 
@@ -118,21 +194,32 @@ function MessageItemElementImage({
     element,
     onlyHaveImage,
 }: { element: MessageNonSendableElementImage; onlyHaveImage: boolean }) {
-    const [currentFile, setCurrentFile] = useState<number>(0);
     const [failed, setFailed] = useState<boolean>(false);
-    const [loading, setLoading] = useState<boolean>(true);
+    const [file, setFile] = useState<string>();
+    const MAX_SIZE = 300;
+    const size = useMemo<[number, number]>(() => {
+        let width = element.width;
+        let height = element.height;
+        if (width > MAX_SIZE) {
+            height = (height / width) * MAX_SIZE;
+            width = MAX_SIZE;
+        }
+        if (height > MAX_SIZE) {
+            width = (width / height) * MAX_SIZE;
+            height = MAX_SIZE;
+        }
+        return [width, height];
+    }, [element]);
 
-    useEffect(() => setCurrentFile(0), [element]);
+    useEffect(() => {
+        element.progress.then((file) => setFile(file));
+    });
 
     return (
         <Stack
             borderRadius={onlyHaveImage ? 0 : 2}
-            width={`${Math.min(element.width!, 300)}px`}
-            height={
-                loading || failed
-                    ? `${Math.min(element.width!, 300) * 0.9}px`
-                    : "auto"
-            }
+            width={`${size[0]}px`}
+            height={`${size[1]}px`}
             overflow="hidden"
             position="relative"
         >
@@ -142,32 +229,25 @@ function MessageItemElementImage({
                 top="50%"
                 sx={{ transform: "translate(-50%,-50%)" }}
             >
-                {loading ? (
+                {!file ? (
                     <CircularProgress />
                 ) : failed ? (
-                    <Typography>加载失败</Typography>
+                    <Typography>{JSON.stringify(element)}</Typography>
                 ) : null}
             </Box>
-            <img
-                src={element.files[currentFile]}
-                alt="图片"
-                css={css({
-                    width: "100%",
-                    opacity: loading || failed ? 0 : 1,
-                    transition: "opacity 0.1s ease",
-                })}
-                onLoad={() => setLoading(false)}
-                onError={() => {
-                    setCurrentFile((oldCurrentFile) => {
-                        const currentFile = oldCurrentFile + 1;
-                        if (!element.files[currentFile]) {
-                            setLoading(false);
-                            setFailed(true);
-                            return 0;
-                        } else return currentFile;
-                    });
-                }}
-            />
+            {file && (
+                <img
+                    src={file}
+                    alt="图片"
+                    css={css({
+                        width: "100%",
+                        height: "100%",
+                        opacity: failed ? 0 : 1,
+                        transition: "opacity 0.1s ease",
+                    })}
+                    onError={() => setFailed(true)}
+                />
+            )}
         </Stack>
     );
 }
@@ -184,7 +264,7 @@ function MessageItemElementFace({
         <img
             src={url}
             alt="表情"
-            css={css({ width: 28, height: 28, verticalAlign: "middle" })}
+            css={css({ width: 22, height: 22, verticalAlign: "middle" })}
         />
     );
 }
@@ -193,18 +273,24 @@ function MessageItem({
     lastMessage,
     message,
     nextMessage,
+    highlighted,
     entity,
     avatar,
     loggedInAccount,
     faceResourceDir,
+    jumpToMessage,
+    showProfile,
 }: {
     lastMessage?: Message;
     message: Message;
     nextMessage?: Message;
+    highlighted: boolean;
     entity: Entity;
     avatar: string;
     loggedInAccount: Account;
     faceResourceDir: string;
+    jumpToMessage: JumpToMessageFunc;
+    showProfile: ShowProfileFunc;
 }) {
     const isFirstMessageSent = useMemo(
         () => !lastMessage || lastMessage.sender.uid !== message.sender.uid,
@@ -240,16 +326,10 @@ function MessageItem({
     );
     const isMessageSizeLimited = useMemo(
         () =>
+            showName &&
             message.elements.length === 1 &&
             (message.elements[0].type === "text" ||
                 message.elements[0].type === "face"),
-        [message],
-    );
-    const isTimeStatic = useMemo(
-        () =>
-            message.elements[message.elements.length - 1].type === "text" ||
-            message.elements[message.elements.length - 1].type === "face" ||
-            message.elements[message.elements.length - 1].type === "revoke",
         [message],
     );
     const onlyHaveImage = useMemo(
@@ -259,19 +339,27 @@ function MessageItem({
         [message],
     );
 
-    const RADIUS_BIG = 18;
+    const RADIUS_BIG = 12;
     const RADIUS_SMALL = 6;
 
     return (
         <Stack
+            bgcolor={highlighted ? "primary.main" : "transparent"}
+            className="message-item"
             width="100%"
-            direction="row"
+            direction={isSelf ? "row-reverse" : "row"}
             alignItems="flex-end"
-            justifyContent={isSelf ? "flex-end" : "flex-start"}
+            justifyContent="flex-start"
             padding={0.5}
             paddingTop={isFirstMessageSent ? 0.5 : 0.25}
             paddingBottom={isLastMessageSent ? 0.5 : 0.25}
             gap={1}
+            sx={{
+                transition: "all 0.2s ease",
+                "&:hover .message-item-time": {
+                    opacity: 1,
+                },
+            }}
         >
             {showAvatar && (
                 <Avatar
@@ -287,7 +375,12 @@ function MessageItem({
             {showAvatarPlaceholder && <Box width={32} flexShrink={0} />}
             <Stack
                 direction="column"
-                bgcolor="background.paper"
+                bgcolor={
+                    isSelf
+                        ? "message.self.background"
+                        : "message.others.background"
+                }
+                boxShadow={1}
                 sx={{
                     borderTopLeftRadius: isSelf
                         ? RADIUS_BIG
@@ -320,11 +413,10 @@ function MessageItem({
                         left={0}
                         right={0}
                         top={0}
-                        height={32}
                         color="primary.main"
                         variant="body2"
-                        fontSize={15}
-                        padding={1.25}
+                        fontSize={13}
+                        padding={1}
                         overflow="hidden"
                         textOverflow="ellipsis"
                         whiteSpace="nowrap"
@@ -333,24 +425,40 @@ function MessageItem({
                     </Typography>
                 )}
                 <Box
-                    padding={onlyHaveImage ? 0 : 1.5}
+                    color={isSelf ? "message.self.text" : "message.others.text"}
+                    padding={onlyHaveImage ? 0 : 1.25}
                     paddingTop={
-                        onlyHaveImage
-                            ? showName
-                                ? 4.5
-                                : 0
-                            : showName
-                            ? 4.35
-                            : 1.5
+                        onlyHaveImage ? (showName ? 4 : 0) : showName ? 4 : 1.25
                     }
-                    paddingBottom={onlyHaveImage ? 0 : isTimeStatic ? 2 : 1}
-                    minWidth={isMessageSizeLimited ? 150 : "auto"}
+                    paddingBottom={onlyHaveImage ? 0 : 1.25}
+                    minWidth={isMessageSizeLimited ? 100 : "auto"}
+                    lineHeight={1.1}
+                    fontSize={14}
                 >
                     {message.elements.map((element) => {
                         let child: React.ReactNode;
-                        if (element.type === "text")
+                        if (element.type === "reply")
+                            child = (
+                                <MessageItemElementReply
+                                    element={element}
+                                    entity={entity}
+                                    jumpToMessage={jumpToMessage}
+                                />
+                            );
+                        else if (element.type === "revoke")
+                            child = (
+                                <MessageItemElementRevoke element={element} />
+                            );
+                        else if (element.type === "text")
                             child = (
                                 <MessageItemElementText element={element} />
+                            );
+                        else if (element.type === "mention")
+                            child = (
+                                <MessageItemElementMention
+                                    element={element}
+                                    showProfile={showProfile}
+                                />
                             );
                         else if (element.type === "image")
                             child = (
@@ -366,45 +474,24 @@ function MessageItem({
                                     faceResourceDir={faceResourceDir}
                                 />
                             );
-                        else if (element.type === "reply")
-                            child = (
-                                <MessageItemElementReply
-                                    element={element}
-                                    entity={entity}
-                                />
-                            );
-                        else if (element.type === "revoke")
-                            child = (
-                                <MessageItemElementRevoke element={element} />
-                            );
                         else if (element.type === "raw")
                             child = `不支持渲染此元素: ${JSON.stringify(
                                 element.raw,
                             )}`;
                         return <Fragment key={element.id!}>{child}</Fragment>;
                     })}
-                    <Stack
-                        position="absolute"
-                        right={0}
-                        bottom={0}
-                        fontSize={10}
-                        width={50}
-                        height={20}
-                        direction="column"
-                        alignItems="center"
-                        justifyContent="center"
-                        color="text.secondary"
-                        sx={{
-                            ...(!isTimeStatic && {
-                                bgcolor: "rgb(0,0,0,0.5)",
-                                backdropFilter: "blur(10px)",
-                                borderTopLeftRadius: 8,
-                            }),
-                        }}
-                    >
-                        {timeStr}
-                    </Stack>
                 </Box>
+            </Stack>
+            <Stack
+                className="message-item-time"
+                fontSize={10}
+                direction="column"
+                alignItems="center"
+                justifyContent="center"
+                color="text.secondary"
+                sx={{ opacity: 0, transition: "opacity 0.1s ease" }}
+            >
+                {timeStr}
             </Stack>
         </Stack>
     );
@@ -415,9 +502,11 @@ const MESSAGE_COUNT = 80;
 
 export default function MessageList({ entity }: { entity: Entity }) {
     const api = useContext(ApiContext);
+    const listRef = useRef<VirtuosoHandle>(null);
     const [authData, setAuthData] = useState<Account>();
     const [faceResourceDir, setFaceResourceDir] = useState<string>();
     const [messages, setMessages] = useState<[number, Message][]>([]);
+    const [highlightedMessageId, setHighlightedMessageId] = useState<string>();
     const [avatars, setAvatars] = useState<Record<string, string>>({});
     const [atTop, setAtTop] = useState<boolean>(false);
     const [firstItemIndex, setFirstItemIndex] = useState<number>(START_INDEX);
@@ -480,6 +569,45 @@ export default function MessageList({ entity }: { entity: Entity }) {
         });
     }, [entity, api, atTop]);
 
+    const jumpToMessage = useCallback(
+        async (message: Message) => {
+            const MAX_TRIES = 3;
+            const listHandle = listRef.current;
+            if (!listHandle) throw new Error("列表未初始化");
+            for (let i = 0; i < MAX_TRIES; i++) {
+                const sourceMessage = messages.find(
+                    ([_, curMessage]) => curMessage.id === message.id,
+                );
+
+                if (sourceMessage) {
+                    return await new Promise<void>((resolve) =>
+                        listHandle.scrollIntoView({
+                            index: messages.length - sourceMessage[0] - 1,
+                            behavior: "smooth",
+                            align: "center",
+                            done() {
+                                setHighlightedMessageId(sourceMessage[1].id);
+                                resolve();
+                            },
+                        }),
+                    );
+                }
+                if (i !== MAX_TRIES - 1) await fetchMoreMessages();
+                else throw new Error("源消息距离太远或已不存在");
+            }
+        },
+        [fetchMoreMessages, messages],
+    );
+
+    useEffect(() => {
+        if (!highlightedMessageId) return;
+        const timer = setTimeout(
+            () => setHighlightedMessageId(undefined),
+            1000,
+        );
+        return () => clearTimeout(timer);
+    }, [highlightedMessageId]);
+
     useEffect(() => {
         (async () => {
             const authData = await api.login.getCurrentAccount();
@@ -501,26 +629,46 @@ export default function MessageList({ entity }: { entity: Entity }) {
     }, [entity, fetchMoreMessages]);
 
     return (
-        <Virtuoso
-            data={messages}
-            css={css({ width: "100%", height: "100%" })}
-            overscan={MESSAGE_COUNT}
-            firstItemIndex={firstItemIndex}
-            initialTopMostItemIndex={MESSAGE_COUNT - 1}
-            startReached={() => fetchMoreMessages()}
-            followOutput={true}
-            totalCount={MESSAGE_COUNT}
-            itemContent={(_, [idx, message]) => (
-                <MessageItem
-                    lastMessage={messages[messages.length - idx - 2]?.[1]}
-                    message={message}
-                    nextMessage={messages[messages.length - idx]?.[1]}
-                    entity={entity}
-                    avatar={avatars[message.sender.uid]}
-                    loggedInAccount={authData!}
-                    faceResourceDir={faceResourceDir!}
-                />
-            )}
-        />
+        <Box
+            width="100%"
+            height="100%"
+            sx={{
+                background: `url("${toURL(
+                    "C:\\Users\\Flysoft\\Desktop\\屏幕截图 2023-08-13 210354.png",
+                )}")`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                backgroundRepeat: "no-repeat",
+            }}
+        >
+            <Virtuoso
+                ref={listRef}
+                components={{
+                    Scroller: Scrollbar,
+                }}
+                data={messages}
+                css={css({ width: "100%", height: "100%" })}
+                overscan={800}
+                firstItemIndex={firstItemIndex}
+                initialTopMostItemIndex={MESSAGE_COUNT - 1}
+                startReached={() => fetchMoreMessages()}
+                followOutput={true}
+                totalCount={MESSAGE_COUNT}
+                itemContent={(_, [idx, message]) => (
+                    <MessageItem
+                        lastMessage={messages[messages.length - idx - 2]?.[1]}
+                        message={message}
+                        nextMessage={messages[messages.length - idx]?.[1]}
+                        highlighted={highlightedMessageId === message.id}
+                        entity={entity}
+                        avatar={avatars[message.sender.uid]}
+                        loggedInAccount={authData!}
+                        faceResourceDir={faceResourceDir!}
+                        jumpToMessage={jumpToMessage}
+                        showProfile={() => undefined}
+                    />
+                )}
+            />
+        </Box>
     );
 }

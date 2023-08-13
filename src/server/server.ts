@@ -22,6 +22,11 @@ interface WSGetLastWebContentsId {
     id: string;
 }
 
+interface WSLog {
+    type: "log";
+    raw: any;
+}
+
 interface WSRequest {
     type: "call";
     id: string;
@@ -104,7 +109,8 @@ function patchBrowserWindow() {
                 ];
                 ipcMain
                     .listeners(`IPC_UP_${webContent.id}`)
-                    .map((func) => func(...msg));
+                    // @ts-expect-error
+                    .map((func) => !func.__internal && func(...msg));
             } else if (data.type === "show-login-window") {
                 wrapPromise(
                     new Promise<void>((resolve, reject) => {
@@ -186,64 +192,87 @@ function patchBrowserWindow() {
                 if (channel.startsWith("IPC_")) {
                     if (isInspectorMode)
                         console.log(channel, ...inspectArgs(args));
-                    for (const client of wss.clients) {
-                        let data: WSEvent | WSRequest | WSResponse | undefined;
-                        if (args?.[0]?.type === "request") {
-                            const eventName = args?.[0]?.eventName as
-                                | string
-                                | undefined;
-                            const prefix = "ns-";
-                            const subfix = `-${win.webContents.id.toString()}`;
-                            const api =
-                                eventName?.substring(
-                                    eventName.indexOf(prefix) + prefix.length,
-                                    eventName.lastIndexOf(subfix),
-                                ) || "unknown";
-                            if (args?.[1]?.[0]?.cmdType === "event") {
-                                data = {
-                                    type: "event",
-                                    api: api,
-                                    cmd: args?.[1]?.[0]?.cmdName,
-                                    payload: args?.[1]?.[0]?.payload,
-                                };
-                            } else {
-                                data = {
-                                    type: "call",
-                                    id: args?.[0]?.callbackId,
-                                    api: api,
-                                    cmd: args?.[1]?.[0],
-                                    args: args?.[1]?.slice(1) || [],
-                                };
-                            }
-                        } else if (
-                            args?.[0]?.type === "response" &&
-                            args?.[0]?.callbackId?.startsWith("_!_")
-                        ) {
+
+                    let data:
+                        | WSLog
+                        | WSEvent
+                        | WSRequest
+                        | WSResponse
+                        | undefined;
+                    if (args?.[0]?.type === "request") {
+                        const eventName = args?.[0]?.eventName as
+                            | string
+                            | undefined;
+                        const prefix = "ns-";
+                        const subfix = `-${win.webContents.id.toString()}`;
+                        const api =
+                            eventName?.substring(
+                                eventName.indexOf(prefix) + prefix.length,
+                                eventName.lastIndexOf(subfix),
+                            ) || "unknown";
+                        if (args?.[1]?.[0]?.cmdType === "event") {
                             data = {
-                                type: "response",
-                                id: args[0].callbackId.replace("_!_", ""),
-                                status:
-                                    args?.[0]?.promiseStatue === "full"
-                                        ? "fulfilled"
-                                        : "rejected",
-                                ret: args?.[1],
+                                type: "event",
+                                api: api,
+                                cmd: args?.[1]?.[0]?.cmdName,
+                                payload: args?.[1]?.[0]?.payload,
+                            };
+                        } else {
+                            data = {
+                                type: "call",
+                                id: args?.[0]?.callbackId,
+                                api: api,
+                                cmd: args?.[1]?.[0],
+                                args: args?.[1]?.slice(1) || [],
                             };
                         }
-                        if (data)
+                    } else if (
+                        args?.[0]?.type === "response" &&
+                        args?.[0]?.callbackId?.startsWith("_!_")
+                    ) {
+                        data = {
+                            type: "response",
+                            id: args[0].callbackId.replace("_!_", ""),
+                            status:
+                                args?.[0]?.promiseStatue === "full"
+                                    ? "fulfilled"
+                                    : "rejected",
+                            ret: args?.[1],
+                        };
+                    } else {
+                        data = {
+                            type: "log",
+                            raw: args,
+                        };
+                    }
+                    if (data)
+                        for (const client of wss.clients) {
                             client.send(
                                 JSON.stringify(serialize(data)),
                                 () => undefined,
                             );
-                    }
+                        }
                 }
                 return send.call(win.webContents, channel, ...args);
             };
 
             const upChannel = `IPC_UP_${win.webContents.id}`;
             const listener = (_: Electron.IpcMainEvent, ...args: any[]) => {
-                if (!args?.[0]?.eventName?.startsWith("ns-LoggerApi"))
+                if (!args?.[0]?.eventName?.startsWith("ns-LoggerApi")) {
                     console.log(upChannel, ...inspectArgs(args));
+                    const data: WSLog = {
+                        type: "log",
+                        raw: args,
+                    };
+                    for (const client of wss.clients) {
+                        client.send(
+                            JSON.stringify(serialize(data)),
+                            () => undefined,
+                        );
+                    }
+                }
             };
+            listener.__internal = true;
 
             ipcMain.on(upChannel, listener);
             win.on("closed", () => ipcMain.off(upChannel, listener));

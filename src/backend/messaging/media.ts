@@ -5,27 +5,29 @@ import { decodeEntity } from "./decoder";
 export class MessagingMedia {
     private nt: IpcApi;
     private fs: IpcApi;
-    private pendingDownloads: Record<string, () => void> = {};
+    private pendingDownloads: Record<string, (payload: any) => void> = {};
     constructor({ nt, fs }: InternalApi) {
         this.nt = nt;
         this.fs = fs;
         this.nt.on(
             "nodeIKernelMsgListener/onRichMediaDownloadComplete",
             (payload) => {
-                this.pendingDownloads[payload?.notifyInfo?.msgElementId]?.();
+                this.pendingDownloads[payload?.notifyInfo?.msgElementId]?.(
+                    payload,
+                );
             },
         );
     }
     public async prepareImageElement(
         file: string,
         imageType: MessageElementImageType,
+        imageSubType: number,
     ): Promise<any> {
         const type = await this.fs.send("getFileType", file);
         const md5 = await this.fs.send("getFileMd5", file);
         const fileName = `${md5}.${type.ext}`;
         const filePath = await this.fs.send(
             "nodeIKernelMsgService/getRichMediaFilePath",
-
             {
                 md5HexStr: md5,
                 fileName: fileName,
@@ -48,10 +50,9 @@ export class MessagingMedia {
             sourcePath: filePath,
             original: true,
             picType:
-                { typical: [1001, 0], sticker: [1000, 1] }[
-                    imageType as string
-                ] || imageType,
-            picSubType: 0,
+                { typical: 1001, sticker: 1000 }[imageType as string] ||
+                imageType,
+            picSubType: imageSubType,
             fileUuid: "",
             fileSubId: "",
             thumbFileSize: 0,
@@ -63,9 +64,8 @@ export class MessagingMedia {
         elementId: string,
         entity: Entity,
         filePath: string,
-        originalFilePath: string,
-    ): Promise<void> {
-        if (await this.fs.send("isFileExist", originalFilePath)) return;
+    ): Promise<string> {
+        if (await this.fs.send("isFileExist", filePath)) return filePath;
         this.nt.send(
             "nodeIKernelMsgService/downloadRichMedia",
             {
@@ -74,14 +74,15 @@ export class MessagingMedia {
                     msgId: msgId,
                     elementId: elementId,
                     thumbSize: 0,
-                    downloadType: 2,
+                    downloadType: 1,
                     filePath: filePath,
                 },
             },
             undefined,
         );
-        return new Promise<void>((resolve) => {
-            this.pendingDownloads[elementId] = () => resolve();
+        return new Promise<string>((resolve) => {
+            this.pendingDownloads[elementId] = (ret) =>
+                resolve(ret.notifyInfo.filePath || filePath);
         });
     }
 }

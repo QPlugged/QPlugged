@@ -37,7 +37,7 @@ declare interface Message {
     sender: MessageEntity;
     timestamp: number;
     elements: MessageNonSendableElement[];
-    progress: Promise<void[]>;
+    progress: Promise<string[]>;
     raw: any;
 }
 
@@ -45,6 +45,7 @@ declare type MessageNonSendableElement =
     | MessageNonSendableElementReply
     | MessageNonSendableElementRevoke
     | MessageNonSendableElementText
+    | MessageNonSendableElementMention
     | MessageNonSendableElementImage
     | MessageNonSendableElementFace
     | MessageNonSendableElementRaw;
@@ -52,6 +53,7 @@ declare type MessageNonSendableElement =
 declare type MessageSendableElement =
     | MessageSendableElementReply
     | MessageSendableElementText
+    | MessageSendableElementMention
     | MessageSendableElementImage
     | MessageSendableElementFace
     | MessageSendableElementRaw;
@@ -104,19 +106,35 @@ declare interface MessageSendableElementText
     extends MessageSendableElementBase,
         MessageCommonElementText {}
 
-declare type MessageElementImageType = "typcial" | "sticker" | [number, number];
+interface MessageCommonElementMention {
+    type: "mention";
+    content: string;
+    uid: string;
+}
+
+declare interface MessageNonSendableElementMention
+    extends MessageNonSendableElementBase,
+        MessageCommonElementMention {}
+
+declare interface MessageSendableElementMention
+    extends MessageSendableElementBase,
+        MessageCommonElementMention {}
+
+declare type MessageElementImageType = "typcial" | "sticker" | number;
 
 interface MessageCommonElementImage {
     type: "image";
+
     imageType: MessageElementImageType;
+    imageSubType: number;
 }
 
 declare interface MessageNonSendableElementImage
     extends MessageNonSendableElementBase,
         MessageCommonElementImage {
-    files: string[];
-    progress: Promise<void>;
+    progress: Promise<string>;
     width: number;
+    height: number;
 }
 
 declare interface MessageSendableElementImage

@@ -2,7 +2,7 @@
     "build": {
         "beforeDevCommand": "yarn vite",
         "beforeBuildCommand": "yarn vite build",
-        "beforeBundleCommand": "yarn node ./build/prebundle.cjs",
+        "beforeBundleCommand": "yarn node ./build/prebundle.cjs || yarn node ./build/prebundle.cjs",
         "devPath": "http://localhost:1420",
         "distDir": "../dist/vite",
         "withGlobalTauri": false
@@ -55,7 +55,7 @@
     },
     "plugins": {
         "shell": {
-            "open": true
+            "open": ".*"
         }
     }
 }

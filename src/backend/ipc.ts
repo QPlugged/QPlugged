@@ -1,3 +1,4 @@
+import { isProduction } from "../main";
 import { deserialize, serialize } from "@ungap/structured-clone";
 import EventEmitter from "eventemitter3";
 import { nanoid } from "nanoid";
@@ -7,6 +8,11 @@ type ResponseStatus = "fulfilled" | "rejected";
 interface WSShowLoginWindow {
     type: "show-login-window";
     id: string;
+}
+
+interface WSLog {
+    type: "log";
+    raw: any;
 }
 
 interface WSRequest {
@@ -47,9 +53,15 @@ export class IpcApi extends EventEmitter {
         this.api = api;
         this.ws.addEventListener("message", (e) => {
             const data = deserialize(JSON.parse(e.data.toString())) as
+                | WSLog
                 | WSEvent
                 | WSResponse;
-            // console.debug("[backend/ipc]", "DOWN", data);
+            if (!isProduction)
+                console.debug(
+                    "[backend/ipc]",
+                    "DOWN",
+                    ...Object.entries(data).flat(),
+                );
             if (data.type === "event") this.emit(data.cmd, data.payload);
             else if (data.type === "response")
                 this.pendingCalls?.[data.id]?.(data.status, data.ret);
@@ -70,7 +82,7 @@ export class IpcApi extends EventEmitter {
             ...data,
             id: id,
         };
-        // console.debug("[backend/ipc]", "UP", _data);
+        if (!isProduction) console.debug("[backend/ipc]", "UP", _data);
         this.ws.send(JSON.stringify(serialize(_data)));
         return new Promise<any>((resolve, reject) => {
             this.pendingCalls[id] = (status, ret) => {
