@@ -4,7 +4,7 @@ export function decodeReplyElement(element: MessageSendableElementReply) {
         elementId: "",
         replyElement: {
             replayMsgId: element.messageId,
-            replayMsgSeq: element.messageSeq,
+            replayMsgSeq: element.sourceMessageSeq,
             sourceMsgText: element.messageSummary,
             senderUid: element.sender,
             senderUidStr: element.sender,

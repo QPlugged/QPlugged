@@ -4,9 +4,9 @@ import { decodeEntity } from "./decoder";
 
 export class MessagingMedia {
     private nt: IpcApi;
-    private fs: IpcApi;
+    private fs: Filesystem;
     private pendingDownloads: Record<string, (payload: any) => void> = {};
-    constructor({ nt, fs }: InternalApi) {
+    constructor({ nt }: InternalApi, fs: Filesystem) {
         this.nt = nt;
         this.fs = fs;
         this.nt.on(
@@ -23,10 +23,10 @@ export class MessagingMedia {
         imageType: MessageElementImageType,
         imageSubType: number,
     ): Promise<any> {
-        const type = await this.fs.send("getFileType", file);
-        const md5 = await this.fs.send("getFileMd5", file);
-        const fileName = `${md5}.${type.ext}`;
-        const filePath = await this.fs.send(
+        const type = await this.fs.getFileInfo(file);
+        const md5 = await this.fs.getFileMD5Hash(file);
+        const fileName = `${md5}.${type.extension}`;
+        const filePath = await this.nt.send(
             "nodeIKernelMsgService/getRichMediaFilePath",
             {
                 md5HexStr: md5,
@@ -38,14 +38,14 @@ export class MessagingMedia {
                 fileType: 1,
             },
         );
-        await this.fs.send("copyFile", { fromPath: file, toPath: filePath });
-        const imageSize = await this.fs.send("getImageSizeFromPath", file);
-        const fileSize = await this.fs.send("getFileSize", file);
+        await this.fs.copyFile(file, filePath);
+        const [imageWidth, imageHeight] = await this.fs.getImageSize(file);
+        const fileSize = await this.fs.getFileSize(file);
         return {
             md5HexStr: md5,
             fileSize: fileSize,
-            picWidth: imageSize.width,
-            picHeight: imageSize.height,
+            picWidth: imageWidth,
+            picHeight: imageHeight,
             fileName: fileName,
             sourcePath: filePath,
             original: true,
@@ -65,7 +65,7 @@ export class MessagingMedia {
         entity: Entity,
         filePath: string,
     ): Promise<string> {
-        if (await this.fs.send("isFileExist", filePath)) return filePath;
+        if (await this.fs.pathExist(filePath)) return filePath;
         this.nt.send(
             "nodeIKernelMsgService/downloadRichMedia",
             {

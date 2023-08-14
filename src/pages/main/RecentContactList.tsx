@@ -4,9 +4,9 @@ import {
     messageElementsToString,
     userToEntity,
 } from "../../backend/messaging/converter";
+import RemoteAvatar from "../../components/RemoteAvatar";
 import Scrollbar from "../../components/Scrollbar";
 import {
-    Avatar,
     List,
     ListItem,
     ListItemAvatar,
@@ -154,7 +154,11 @@ export default function RecentContactList({
                             onClick={() => onSelectEntity(item.entity)}
                         >
                             <ListItemAvatar>
-                                <Avatar src={item.avatar} />
+                                <RemoteAvatar
+                                    name={item.name}
+                                    file={item.avatar}
+                                    size={40}
+                                />
                             </ListItemAvatar>
                             <ListItemText
                                 primary={

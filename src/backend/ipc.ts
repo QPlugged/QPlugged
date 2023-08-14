@@ -60,7 +60,7 @@ export class IpcApi extends EventEmitter {
                 console.debug(
                     "[backend/ipc]",
                     "DOWN",
-                    ...Object.entries(data).flat(),
+                    ...Object.entries(data).flat(2),
                 );
             if (data.type === "event") this.emit(data.cmd, data.payload);
             else if (data.type === "response")

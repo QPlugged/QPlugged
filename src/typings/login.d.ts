@@ -12,7 +12,8 @@ declare interface Account {
 
 declare interface LoginAccount extends Account {
     name: string;
-    avatar: string;
+    avatarFile?: string;
+    avatarURL?: string;
     quickLoginSupported: boolean;
 }
 

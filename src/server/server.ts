@@ -6,8 +6,6 @@ import {
     BrowserWindowConstructorOptions,
     ipcMain,
 } from "electron";
-import { dirname } from "path";
-import { inspect } from "util";
 import { WebSocketServer } from "ws";
 
 type ResponseStatus = "fulfilled" | "rejected";
@@ -51,10 +49,6 @@ interface WSEvent {
 
 let loginWindowStatus: "opened" | "destroyed" | "never-shown" = "never-shown";
 let loginWindow: BrowserWindow | undefined;
-
-function inspectArgs(args: any[]) {
-    return args.map((obj) => inspect(obj, { colors: true, depth: 10 }));
-}
 
 function patchBrowserWindow() {
     const wss = new WebSocketServer({ port: listenPort });
@@ -162,12 +156,11 @@ function patchBrowserWindow() {
                 show: !isInspectorMode ? options.show : false,
                 webPreferences: {
                     ...options.webPreferences,
-                    preload:
-                        !isInspectorMode && loginWindowStatus !== "never-shown"
-                            ? options.webPreferences?.preload &&
-                              dirname(options.webPreferences.preload)
-                            : options.webPreferences?.preload,
-
+                    // preload:
+                    //     !isInspectorMode && loginWindowStatus !== "never-shown"
+                    //         ? options.webPreferences?.preload &&
+                    //           dirname(options.webPreferences.preload)
+                    //         : options.webPreferences?.preload,
                     nodeIntegration: true,
                 },
             };
@@ -190,9 +183,6 @@ function patchBrowserWindow() {
             win.webContents.send = (channel: string, ...args: any[]) => {
                 if (args?.[0]?.eventName?.startsWith("ns-LoggerApi")) return;
                 if (channel.startsWith("IPC_")) {
-                    if (isInspectorMode)
-                        console.log(channel, ...inspectArgs(args));
-
                     let data:
                         | WSLog
                         | WSEvent
@@ -239,7 +229,7 @@ function patchBrowserWindow() {
                                     : "rejected",
                             ret: args?.[1],
                         };
-                    } else {
+                    } else if (isInspectorMode) {
                         data = {
                             type: "log",
                             raw: args,
@@ -258,19 +248,19 @@ function patchBrowserWindow() {
 
             const upChannel = `IPC_UP_${win.webContents.id}`;
             const listener = (_: Electron.IpcMainEvent, ...args: any[]) => {
-                if (!args?.[0]?.eventName?.startsWith("ns-LoggerApi")) {
-                    console.log(upChannel, ...inspectArgs(args));
-                    const data: WSLog = {
-                        type: "log",
-                        raw: args,
-                    };
-                    for (const client of wss.clients) {
-                        client.send(
-                            JSON.stringify(serialize(data)),
-                            () => undefined,
-                        );
+                if (isInspectorMode)
+                    if (!args?.[0]?.eventName?.startsWith("ns-LoggerApi")) {
+                        const data: WSLog = {
+                            type: "log",
+                            raw: args,
+                        };
+                        for (const client of wss.clients) {
+                            client.send(
+                                JSON.stringify(serialize(data)),
+                                () => undefined,
+                            );
+                        }
                     }
-                }
             };
             listener.__internal = true;
 
@@ -283,13 +273,8 @@ function patchBrowserWindow() {
                 // @ts-expect-error
                 win._showInactive = win.showInactive;
             } else if (!isInspectorMode) {
-                win.webContents.loadFile = async () => undefined;
+                win.webContents.insertCSS("*{display:none;}");
             }
-            const loadURL = win.webContents.loadURL;
-            win.webContents.loadURL = async (url) => {
-                console.log(url);
-                return loadURL.apply(win.webContents, [url]);
-            };
             if (!isInspectorMode) {
                 win.show = () => undefined;
                 win.showInactive = () => undefined;

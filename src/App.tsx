@@ -1,5 +1,6 @@
 import { Api, ApiContext } from "./Api";
 import { InternalApi } from "./backend/api";
+import { FilesystemImpl } from "./backend/fs";
 import { LoginImpl } from "./backend/login";
 import { MessagingImpl } from "./backend/messaging";
 import IndexPage from "./pages/index/IndexPage";
@@ -157,11 +158,16 @@ function App() {
     }, [internalApi]);
 
     const api = useMemo((): Api | undefined => {
-        if (internalApiState === "connected" && internalApi)
+        if (internalApiState === "connected" && internalApi) {
+            const login = new LoginImpl(internalApi);
+            const fs = new FilesystemImpl(internalApi);
+            const messaging = new MessagingImpl(internalApi, fs);
             return {
-                login: new LoginImpl(internalApi),
-                messaging: new MessagingImpl(internalApi),
+                login,
+                fs,
+                messaging,
             };
+        }
     }, [internalApiState]);
 
     return (

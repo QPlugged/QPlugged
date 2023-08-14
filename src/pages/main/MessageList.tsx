@@ -1,10 +1,9 @@
 import { ApiContext } from "../../Api";
-import { messageElementsToString } from "../../backend/messaging/converter";
+import RemoteAvatar from "../../components/RemoteAvatar";
+import RemoteFixedSizeImage from "../../components/RemoteFixedSizeImage";
 import Scrollbar from "../../components/Scrollbar";
-import toURL from "../../utils/toURL";
 import { css } from "@emotion/react";
 import {
-    Avatar,
     Box,
     Button,
     CircularProgress,
@@ -14,6 +13,7 @@ import {
 } from "@mui/material";
 import dayjs from "dayjs";
 import * as linkify from "linkifyjs";
+import Lottie from "lottie-react";
 import {
     Fragment,
     useCallback,
@@ -45,7 +45,7 @@ function MessageItemElementReply({
             const messages = await api.messaging.getPreviousMessagesBySeq(
                 entity,
                 7,
-                element.raw.replyElement.replayMsgSeq,
+                element.sourceMessageSeq,
                 false,
             );
             setSourceMessage(messages[0]);
@@ -63,32 +63,37 @@ function MessageItemElementReply({
                 marginBottom={0.5}
             />
 
-            {sourceMessage && (
-                <Button
-                    color="inherit"
-                    onClick={() => jumpToMessage(sourceMessage)}
-                    sx={{ textTransform: "none" }}
-                >
-                    <Stack direction="column" gap={0.1} alignItems="flex-start">
-                        <Typography variant="body2" color="secondary.main">
-                            {sourceMessage.sender.memberName ||
-                                sourceMessage.sender.name}
-                        </Typography>
-                        <Typography
-                            variant="body2"
-                            overflow="hidden"
-                            textOverflow="ellipsis"
-                            sx={{
-                                display: "-webkit-box",
-                                WebkitBoxOrient: "vertical",
-                                WebkitLineClamp: "2",
-                            }}
-                        >
-                            {messageElementsToString(sourceMessage.elements)}
-                        </Typography>
-                    </Stack>
-                </Button>
-            )}
+            <Button
+                color="inherit"
+                onClick={() => sourceMessage && jumpToMessage(sourceMessage)}
+                sx={{
+                    textTransform: "none",
+                    textAlign: "left",
+                    flex: 1,
+                    justifyContent: "flex-start",
+                }}
+            >
+                <Stack direction="column" gap={0.1} alignItems="flex-start">
+                    <Typography variant="body2" color="secondary.main">
+                        {sourceMessage
+                            ? sourceMessage.sender.memberName ||
+                              sourceMessage.sender.name
+                            : "-"}
+                    </Typography>
+                    <Typography
+                        variant="body2"
+                        overflow="hidden"
+                        textOverflow="ellipsis"
+                        sx={{
+                            display: "-webkit-box",
+                            WebkitBoxOrient: "vertical",
+                            WebkitLineClamp: "2",
+                        }}
+                    >
+                        {element.sourceMessageText}
+                    </Typography>
+                </Stack>
+            </Button>
         </Stack>
     );
 }
@@ -108,7 +113,7 @@ function MessageItemElementRevoke({
                         fontSize="inherit"
                     >
                         {element.operator.memberName || element.operator.name}
-                    </Typography>
+                    </Typography>{" "}
                     撤回了{" "}
                     <Typography
                         color="secondary.main"
@@ -193,10 +198,8 @@ function MessageItemElementImage({
     element,
     onlyHaveImage,
 }: { element: MessageNonSendableElementImage; onlyHaveImage: boolean }) {
-    const [failed, setFailed] = useState<boolean>(false);
-    const [file, setFile] = useState<string>();
     const MAX_SIZE = 300;
-    const size = useMemo<[number, number]>(() => {
+    const [width, height] = useMemo<[number, number]>(() => {
         let width = element.width;
         let height = element.height;
         if (width > MAX_SIZE) {
@@ -209,61 +212,78 @@ function MessageItemElementImage({
         }
         return [width, height];
     }, [element]);
+    const [file, setFile] = useState<string>();
 
     useEffect(() => {
-        element.progress.then((file) => setFile(file));
-    });
+        (async () => {
+            const file = await element.progress;
+            setFile(file);
+        })();
+    }, [element]);
 
     return (
-        <Stack
+        <Box
             borderRadius={onlyHaveImage ? 0 : 2}
-            width={`${size[0]}px`}
-            height={`${size[1]}px`}
             overflow="hidden"
-            position="relative"
+            width="fit-content"
         >
-            <Box
-                position="absolute"
-                left="50%"
-                top="50%"
-                sx={{ transform: "translate(-50%,-50%)" }}
-            >
-                {!file ? (
-                    <CircularProgress />
-                ) : failed ? (
-                    <Typography>{JSON.stringify(element)}</Typography>
-                ) : null}
-            </Box>
-            {file && (
-                <img
-                    src={file}
-                    alt="图片"
-                    css={css({
-                        width: "100%",
-                        height: "100%",
-                        opacity: failed ? 0 : 1,
-                        transition: "opacity 0.1s ease",
-                    })}
-                    onError={() => setFailed(true)}
-                />
-            )}
-        </Stack>
+            <RemoteFixedSizeImage
+                width={width}
+                height={height}
+                file={file}
+                alt="图片"
+            />
+        </Box>
     );
 }
 
 function MessageItemElementFace({
     element,
     faceResourceDir,
-}: { element: MessageNonSendableElementFace; faceResourceDir: string }) {
-    const url = useMemo(
-        () => toURL(`${faceResourceDir}/gif/s${element.faceId}.gif`),
-        [element, faceResourceDir],
+    lottieResourceDir,
+}: {
+    element: MessageNonSendableElementFace;
+    faceResourceDir: string;
+    lottieResourceDir: string;
+}) {
+    const api = useContext(ApiContext);
+    const file = useMemo(
+        () => `${faceResourceDir}/apng/s${element.faceId}.png`,
+        [faceResourceDir, element],
     );
-    return (
-        <img
-            src={url}
-            alt="表情"
-            css={css({ width: 22, height: 22, verticalAlign: "middle" })}
+    const [lottieRes, setLottieRes] = useState<any>();
+
+    useEffect(() => {
+        if (element.faceType === "big")
+            (async () => {
+                const file = `${lottieResourceDir}/1/${element.faceBigId}/${element.faceBigId}.json`;
+                const res = JSON.parse(await api.fs.readTextFile(file));
+                setLottieRes(res);
+            })();
+    }, [element, api, lottieResourceDir]);
+
+    return element.faceType === "big" ? (
+        lottieRes ? (
+            <Lottie
+                animationData={lottieRes}
+                css={css({ width: "160px", height: "160px" })}
+            />
+        ) : (
+            <Box
+                position="absolute"
+                left="50%"
+                top="50%"
+                sx={{ transform: "translate(-50%,-50%)" }}
+            >
+                <CircularProgress />
+            </Box>
+        )
+    ) : (
+        <RemoteFixedSizeImage
+            width={22}
+            height={22}
+            file={file}
+            alt="动画表情"
         />
     );
 }
@@ -277,6 +297,7 @@ function MessageItem({
     avatar,
     loggedInAccount,
     faceResourceDir,
+    lottieResourceDir,
     jumpToMessage,
     showProfile,
 }: {
@@ -288,6 +309,7 @@ function MessageItem({
     avatar: string;
     loggedInAccount: Account;
     faceResourceDir: string;
+    lottieResourceDir: string;
     jumpToMessage: JumpToMessageFunc;
     showProfile: ShowProfileFunc;
 }) {
@@ -361,15 +383,7 @@ function MessageItem({
             }}
         >
             {showAvatar && (
-                <Avatar
-                    src={avatar}
-                    sx={{ width: 32, height: 32, flexShrink: 0 }}
-                >
-                    {(message.sender.memberName || message.sender.name).slice(
-                        0,
-                        1,
-                    ) || null}
-                </Avatar>
+                <RemoteAvatar name={senderName} file={avatar} size={32} />
             )}
             {showAvatarPlaceholder && <Box width={32} flexShrink={0} />}
             <Stack
@@ -431,7 +445,6 @@ function MessageItem({
                     }
                     paddingBottom={onlyHaveImage ? 0 : 1.25}
                     minWidth={isMessageSizeLimited ? 100 : "auto"}
-                    lineHeight={1.1}
                     fontSize={14}
                 >
                     {message.elements.map((element) => {
@@ -471,6 +484,7 @@ function MessageItem({
                                 <MessageItemElementFace
                                     element={element}
                                     faceResourceDir={faceResourceDir}
+                                    lottieResourceDir={lottieResourceDir}
                                 />
                             );
                         else if (element.type === "raw")
@@ -504,6 +518,7 @@ export default function MessageList({ entity }: { entity: Entity }) {
     const listRef = useRef<VirtuosoHandle>(null);
     const [authData, setAuthData] = useState<Account>();
     const [faceResourceDir, setFaceResourceDir] = useState<string>();
+    const [lottieResourceDir, setLottieResourceDir] = useState<string>();
     const [messages, setMessages] = useState<[number, Message][]>([]);
     const [highlightedMessageId, setHighlightedMessageId] = useState<string>();
     const [avatars, setAvatars] = useState<Record<string, string>>({});
@@ -512,59 +527,68 @@ export default function MessageList({ entity }: { entity: Entity }) {
 
     const fetchMoreMessages = useCallback(async () => {
         if (atTop) return;
-        setMessages((oldMessages) => {
-            (async () => {
-                const moreMessages = await api.messaging.getPreviousMessages(
-                    entity,
-                    oldMessages.length !== 0
-                        ? MESSAGE_COUNT + 1
-                        : MESSAGE_COUNT,
-                    oldMessages?.[0]?.[1]?.id || "0",
-                );
-                if (oldMessages.length !== 0)
-                    moreMessages.splice(moreMessages.length - 1);
-                if (moreMessages.length === 0) {
-                    setAtTop(true);
-                    return;
-                }
-
-                setAvatars((oldAvatars) => {
-                    (async () => {
-                        const entities = moreMessages
-                            .filter((message) => {
-                                return !oldAvatars[message.sender.uid];
-                            })
-                            .map((message) => ({
-                                type: "user" as const,
-                                uid: message.sender.uid,
-                            }));
-                        const avatarsMap = await api.messaging.getAvatars(
-                            entities,
+        return await new Promise<[number, Message][] | undefined>((resolve) => {
+            setMessages((oldMessages) => {
+                (async () => {
+                    const moreMessages =
+                        await api.messaging.getPreviousMessages(
+                            entity,
+                            oldMessages.length !== 0
+                                ? MESSAGE_COUNT + 1
+                                : MESSAGE_COUNT,
+                            oldMessages?.[0]?.[1]?.id || "0",
                         );
-                        for (const [entity, avatar] of avatarsMap)
-                            setAvatars((oldAvatars) => ({
-                                ...oldAvatars,
-                                [entity.uid]: avatar,
-                            }));
-                    })();
-                    return oldAvatars;
-                });
+                    if (oldMessages.length !== 0)
+                        moreMessages.splice(moreMessages.length - 1);
+                    if (moreMessages.length === 0) {
+                        setAtTop(true);
+                        resolve(undefined);
+                        return;
+                    }
 
-                const newMessages = moreMessages.map(
-                    (message, idx): [number, Message] => [
-                        moreMessages.length -
-                            idx +
-                            (oldMessages?.length || 0) -
-                            1,
-                        message,
-                    ],
-                );
-                setMessages((oldMessages) => [...newMessages, ...oldMessages]);
-                setFirstItemIndex(
-                    (oldFirstItemIndex) => oldFirstItemIndex - MESSAGE_COUNT,
-                );
-            })();
-            return oldMessages;
+                    setAvatars((oldAvatars) => {
+                        (async () => {
+                            const entities = moreMessages
+                                .filter((message) => {
+                                    return !oldAvatars[message.sender.uid];
+                                })
+                                .map((message) => ({
+                                    type: "user" as const,
+                                    uid: message.sender.uid,
+                                }));
+                            const avatarsMap = await api.messaging.getAvatars(
+                                entities,
+                            );
+                            for (const [entity, avatar] of avatarsMap)
+                                setAvatars((oldAvatars) => ({
+                                    ...oldAvatars,
+                                    [entity.uid]: avatar,
+                                }));
+                        })();
+                        return oldAvatars;
+                    });
+
+                    const newMessages = moreMessages.map(
+                        (message, idx): [number, Message] => [
+                            moreMessages.length -
+                                idx +
+                                (oldMessages?.length || 0) -
+                                1,
+                            message,
+                        ],
+                    );
+                    setFirstItemIndex(
+                        (oldFirstItemIndex) =>
+                            oldFirstItemIndex - MESSAGE_COUNT,
+                    );
+                    setMessages((oldMessages) => {
+                        const messages = [...newMessages, ...oldMessages];
+                        resolve(messages);
+                        return messages;
+                    });
+                })();
+                return oldMessages;
+            });
         });
     }, [entity, api, atTop]);
 
@@ -573,15 +597,15 @@ export default function MessageList({ entity }: { entity: Entity }) {
             const MAX_TRIES = 3;
             const listHandle = listRef.current;
             if (!listHandle) throw new Error("列表未初始化");
+            let _messages = messages;
             for (let i = 0; i < MAX_TRIES; i++) {
-                const sourceMessage = messages.find(
+                const sourceMessage = _messages.find(
                     ([_, curMessage]) => curMessage.id === message.id,
                 );
-
                 if (sourceMessage) {
                     return await new Promise<void>((resolve) =>
                         listHandle.scrollIntoView({
-                            index: messages.length - sourceMessage[0] - 1,
+                            index: _messages.length - sourceMessage[0] - 1,
                             behavior: "smooth",
                             align: "center",
                             done() {
@@ -591,8 +615,11 @@ export default function MessageList({ entity }: { entity: Entity }) {
                         }),
                     );
                 }
-                if (i !== MAX_TRIES - 1) await fetchMoreMessages();
-                else throw new Error("源消息距离太远或已不存在");
+                if (i !== MAX_TRIES - 1) {
+                    const messages = await fetchMoreMessages();
+                    if (!messages) throw new Error("源消息已不存在");
+                    _messages = messages;
+                } else throw new Error("源消息距离太远或已不存在");
             }
         },
         [fetchMoreMessages, messages],
@@ -610,9 +637,12 @@ export default function MessageList({ entity }: { entity: Entity }) {
     useEffect(() => {
         (async () => {
             const authData = await api.login.getCurrentAccount();
-            setAuthData(authData);
             const faceResourceDir = await api.messaging.getFaceResourceDir();
+            const lottieResourceDir =
+                await api.messaging.getLottieResourceDir();
+            setAuthData(authData);
             setFaceResourceDir(faceResourceDir);
+            setLottieResourceDir(lottieResourceDir);
         })();
     }, [api]);
 
@@ -632,9 +662,6 @@ export default function MessageList({ entity }: { entity: Entity }) {
             width="100%"
             height="100%"
             sx={{
-                background: `url("${toURL(
-                    "C:\\Users\\Flysoft\\Desktop\\屏幕截图 2023-08-13 210354.png",
-                )}")`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
                 backgroundRepeat: "no-repeat",
@@ -647,7 +674,7 @@ export default function MessageList({ entity }: { entity: Entity }) {
                 }}
                 data={messages}
                 css={css({ width: "100%", height: "100%" })}
-                overscan={800}
+                increaseViewportBy={{ top: 800, bottom: 800 }}
                 firstItemIndex={firstItemIndex}
                 initialTopMostItemIndex={MESSAGE_COUNT - 1}
                 startReached={() => fetchMoreMessages()}
@@ -663,6 +690,7 @@ export default function MessageList({ entity }: { entity: Entity }) {
                         avatar={avatars[message.sender.uid]}
                         loggedInAccount={authData!}
                         faceResourceDir={faceResourceDir!}
+                        lottieResourceDir={lottieResourceDir!}
                         jumpToMessage={jumpToMessage}
                         showProfile={() => undefined}
                     />

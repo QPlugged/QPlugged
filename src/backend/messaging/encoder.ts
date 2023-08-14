@@ -1,14 +1,15 @@
-import toURL from "../../utils/toURL";
 import { MessagingMedia } from "./media";
 
-export function encodeReplyElement(
-    ele: any,
-    msg: any,
-): MessageNonSendableElementReply {
+export function encodeReplyElement(ele: any): MessageNonSendableElementReply {
     return {
         type: "reply",
         id: ele.elementId,
-        messageSeq: msg.msgSeq,
+        sourceMessageSeq: ele.replyElement.replayMsgSeq,
+        sourceMessageText: ele.replyElement.sourceMsgTextElems
+            .map((ele: any) =>
+                ele.replyAbsElemType === 1 ? ele.textElemContent : "[表情]",
+            )
+            .join(""),
         sender: ele.replyElement.senderUidStr,
         raw: ele,
     };
@@ -69,20 +70,16 @@ export function encodeImageElement(
     return {
         type: "image",
         id: ele.elementId,
-        // file:
-        //     ele.picElement.picSubType === 1
-        //         ? toURL(ele.picElement.sourcePath)
-        //         : toURL(ele.picElement.thumbPath.get(0)),
         imageType: type,
         imageSubType: ele.picElement.picSubType,
-        progress: media
-            .downloadMedia(
-                messageId,
-                ele.elementId,
-                entity,
-                ele.picElement.sourcePath,
-            )
-            .then((file) => toURL(file)),
+        progress: media.downloadMedia(
+            messageId,
+            ele.elementId,
+            entity,
+            ele.picElement.original
+                ? ele.picElement.thumbPath.get(0) || ele.picElement.sourcePath
+                : ele.picElement.sourcePath,
+        ),
         width: ele.picElement.picWidth,
         height: ele.picElement.picHeight,
         raw: ele,
@@ -143,7 +140,7 @@ export function encodeMessage(raw: any, media: MessagingMedia): Message {
                         return element;
                     },
                     6: encodeFaceElement,
-                    7: (ele: any) => encodeReplyElement(ele, raw),
+                    7: encodeReplyElement,
                     8: { 1: encodeRevokeElement }[
                         ele.grayTipElement?.subElementType as number
                     ],

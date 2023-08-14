@@ -1,4 +1,3 @@
-import toURL from "../utils/toURL";
 import { InternalApi } from "./api";
 import { IpcApi } from "./ipc";
 
@@ -24,7 +23,8 @@ export class LoginImpl implements Login {
                 uin: item.uin,
                 uid: item.uid,
                 name: item.nickName,
-                avatar: toURL(item.facePath, item.faceUrl),
+                avatarURL: item.faceUrl,
+                avatarFile: item.facePath,
                 quickLoginSupported: item.isQuickLogin,
             };
         });

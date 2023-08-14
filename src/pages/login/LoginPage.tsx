@@ -1,7 +1,7 @@
 import { ApiContext } from "../../Api";
+import RemoteAvatar from "../../components/RemoteAvatar";
 import { Clear, Key } from "@mui/icons-material";
 import {
-    Avatar,
     Box,
     Button,
     Dialog,
@@ -12,6 +12,7 @@ import {
     IconButton,
     List,
     ListItem,
+    ListItemAvatar,
     ListItemButton,
     ListItemIcon,
     ListItemText,
@@ -136,20 +137,16 @@ export default function Login() {
                                                     loginWithUin(account.uin)
                                                 }
                                             >
-                                                <ListItemIcon>
-                                                    <Avatar
-                                                        src={account.avatar}
-                                                        alt={account.name}
-                                                        imgProps={{
-                                                            draggable: false,
-                                                        }}
-                                                    >
-                                                        {account.name.slice(
-                                                            0,
-                                                            1,
-                                                        ) || null}
-                                                    </Avatar>
-                                                </ListItemIcon>
+                                                <ListItemAvatar>
+                                                    <RemoteAvatar
+                                                        name={account.name}
+                                                        file={
+                                                            account.avatarFile
+                                                        }
+                                                        url={account.avatarURL}
+                                                        size={40}
+                                                    />
+                                                </ListItemAvatar>
                                                 <ListItemText
                                                     primary={
                                                         account.name

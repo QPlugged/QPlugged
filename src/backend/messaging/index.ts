@@ -1,4 +1,3 @@
-import toURL from "../../utils/toURL";
 import { InternalApi } from "../api";
 import { IpcApi } from "../ipc";
 import { filterEntities } from "./converter";
@@ -6,6 +5,7 @@ import {
     decodeEntity,
     decodeFaceElement,
     decodeImageElement,
+    decodeMentionElement,
     decodeRawElement,
     decodeReplyElement,
     decodeTextElement,
@@ -20,11 +20,11 @@ export class MessagingImpl
 {
     private nt: IpcApi;
     private media: MessagingMedia;
-    constructor(api: InternalApi) {
+    constructor(api: InternalApi, fs: Filesystem) {
         super();
         const { nt } = api;
         this.nt = nt;
-        this.media = new MessagingMedia(api);
+        this.media = new MessagingMedia(api, fs);
         this.nt.on("nodeIKernelMsgListener/onRecvMsg", (payload: any) => {
             const messages = (payload?.msgList as any[])?.map((message) =>
                 encodeMessage(message, this.media),
@@ -39,12 +39,20 @@ export class MessagingImpl
         });
     }
 
-    async getFaceResourceDir(): Promise<string> {
+    private async _getResourceDir(type: number): Promise<string> {
         const res = await this.nt.send(
             "nodeIKernelMsgService/getEmojiResourcePath",
-            { type: 1 },
+            { type: type },
         );
         return res.resourcePath;
+    }
+
+    getFaceResourceDir(): Promise<string> {
+        return this._getResourceDir(1);
+    }
+
+    async getLottieResourceDir(): Promise<string> {
+        return this._getResourceDir(4);
     }
 
     async getPreviousMessages(
@@ -105,11 +113,13 @@ export class MessagingImpl
                         return {
                             reply: decodeReplyElement,
                             text: decodeTextElement,
+                            mention: decodeMentionElement,
                             image: (element: MessageSendableElementImage) =>
                                 decodeImageElement(
                                     this.media.prepareImageElement(
                                         element.file,
                                         element.imageType,
+                                        element.imageSubType,
                                     ),
                                 ),
                             face: decodeFaceElement,
@@ -144,7 +154,7 @@ export class MessagingImpl
                 entities.find(
                     (entity) => entity.type === "user" && entity.uid === uid,
                 )!,
-                toURL(path),
+                path,
             );
         const groups: Map<string, string> = await this.nt.send(
             "nodeIKernelAvatarService/getGroupsAvatarPath",
@@ -158,7 +168,7 @@ export class MessagingImpl
                 entities.find(
                     (entity) => entity.type === "group" && entity.uid === uid,
                 )!,
-                toURL(path),
+                path,
             );
         return avatars;
     }

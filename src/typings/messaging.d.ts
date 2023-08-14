@@ -7,6 +7,7 @@ type MessagingEventEmitter =
 
 declare interface Messaging extends MessagingEventEmitter {
     getFaceResourceDir(): Promise<string>;
+    getLottieResourceDir(): Promise<string>;
     getPreviousMessages(
         entity: Entity,
         messageCount: number,
@@ -68,12 +69,14 @@ declare type MessageSendableElementBase = {};
 interface MessageCommonElementReply {
     type: "reply";
     sender: string;
-    messageSeq: string;
+    sourceMessageSeq: string;
 }
 
 declare interface MessageNonSendableElementReply
     extends MessageNonSendableElementBase,
-        MessageCommonElementReply {}
+        MessageCommonElementReply {
+    sourceMessageText: string;
+}
 
 declare interface MessageSendableElementReply
     extends MessageSendableElementBase,
