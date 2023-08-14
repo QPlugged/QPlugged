@@ -33,7 +33,8 @@
             "dangerousRemoteDomainIpcAccess": [
                 {
                     "domain": "tauri.localhost",
-                    "windows": ["main"]
+                    "windows": ["main"],
+                    "plugins": ["shell"]
                 }
             ]
         },

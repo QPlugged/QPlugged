@@ -12,7 +12,6 @@ import {
     Stack,
     Typography,
 } from "@mui/material";
-import { open } from "@tauri-apps/plugin-shell";
 import dayjs from "dayjs";
 import * as linkify from "linkifyjs";
 import {
@@ -161,7 +160,7 @@ function MessageItemElementText({
                             </Fragment>
                         ))
                     ) : type === "url" ? (
-                        <Link component="button" onClick={() => open(args[0])}>
+                        <Link href={args[0]} target="_blank" rel="noreferrer">
                             {args[1]}
                         </Link>
                     ) : null}
