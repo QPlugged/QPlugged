@@ -1,6 +1,6 @@
 [package]
 name = "qplugged"
-version = "0.0.0"
+version = "0.1.0"
 description = "QPlugged"
 authors = ["The QPlugged Authors"]
 edition = "2021"
