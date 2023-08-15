@@ -368,7 +368,7 @@ function MessageItem({
     );
 
     const RADIUS_BIG = 12;
-    const RADIUS_SMALL = 6;
+    const RADIUS_SMALL = 4;
 
     return (
         <Stack
@@ -378,7 +378,7 @@ function MessageItem({
             direction={isSelf ? "row-reverse" : "row"}
             alignItems="flex-end"
             justifyContent="flex-start"
-            padding={0.5}
+            padding={1.1}
             paddingTop={isFirstMessageSent ? 0.5 : 0.25}
             paddingBottom={isLastMessageSent ? 0.5 : 0.25}
             gap={1}
@@ -714,19 +714,7 @@ export default function MessageList({ entity }: { entity: Entity }) {
     }, [entity, fetchMoreMessages, scrollToBottom]);
 
     return (
-        <Stack
-            width="100%"
-            height="100%"
-            direction="column"
-            overflow="hidden"
-            sx={{
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-                backgroundRepeat: "no-repeat",
-                borderBottomLeftRadius: 12,
-                borderBottomRightRadius: 12,
-            }}
-        >
+        <Stack width="100%" height="100%" direction="column">
             <Box position="relative" flex={1}>
                 <Virtuoso
                     ref={listRef}

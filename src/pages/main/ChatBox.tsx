@@ -33,12 +33,18 @@ export default function ChatBox({
 
     return (
         <Stack
+            margin={1}
+            marginTop={0}
             direction="column"
             bgcolor="background.paper"
             zIndex={10}
+            boxShadow={3}
+            borderRadius={2}
             sx={{
-                borderTopLeftRadius: 12,
-                borderTopRightRadius: 12,
+                transition: "all 0.2s ease",
+                "&:hover, &:focus-within": {
+                    boxShadow: 5,
+                },
             }}
         >
             <Stack direction="row" alignItems="flex-end" padding={0.5}>
