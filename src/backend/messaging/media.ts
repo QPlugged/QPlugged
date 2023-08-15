@@ -11,11 +11,10 @@ export class MessagingMedia {
         this.fs = fs;
         this.nt.on(
             "nodeIKernelMsgListener/onRichMediaDownloadComplete",
-            (payload) => {
+            (payload) =>
                 this.pendingDownloads[payload?.notifyInfo?.msgElementId]?.(
                     payload,
-                );
-            },
+                ),
         );
     }
     public async prepareImageElement(
@@ -80,7 +79,7 @@ export class MessagingMedia {
             },
             undefined,
         );
-        return new Promise<string>((resolve) => {
+        return await new Promise<string>((resolve) => {
             this.pendingDownloads[elementId] = (ret) =>
                 resolve(ret.notifyInfo.filePath || filePath);
         });
