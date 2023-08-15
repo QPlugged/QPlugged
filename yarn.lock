@@ -4310,6 +4310,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"punycode@npm:^2.3.0":
+  version: 2.3.0
+  resolution: "punycode@npm:2.3.0"
+  checksum: 39f760e09a2a3bbfe8f5287cf733ecdad69d6af2fe6f97ca95f24b8921858b91e9ea3c9eeec6e08cede96181b3bb33f95c6ffd8c77e63986508aa2e8159fa200
+  languageName: node
+  linkType: hard
+
 "qplugged@workspace:.":
   version: 0.0.0-use.local
   resolution: "qplugged@workspace:."
@@ -4347,6 +4354,7 @@ __metadata:
     lottie-react: ^2.4.0
     markdown-it: ^13.0.1
     nanoid: ^4.0.2
+    punycode: ^2.3.0
     react: ^18.2.0
     react-dom: ^18.2.0
     react-hotkeys-hook: ^4.4.1
