@@ -16,7 +16,6 @@ import {
     experimental_extendTheme,
 } from "@mui/material";
 import { zhCN } from "@mui/material/locale";
-import { tauri } from "@tauri-apps/api";
 import { useEffect, useMemo, useState } from "react";
 import { RouterProvider, createHashRouter } from "react-router-dom";
 
@@ -159,15 +158,7 @@ function App() {
     const [internalApi, setInternalApi] = useState<InternalApi | undefined>();
 
     useEffect(() => {
-        (async () => {
-            let port = 15321;
-            const initialized = await tauri.invoke("initialize_nt");
-            if (!initialized) port = await tauri.invoke("launch_nt");
-            setInternalApi(new InternalApi(`ws://127.0.0.1:${port}`));
-        })().catch((reason) => {
-            setInternalApiError([-999, `启动后端失败：${reason}`]);
-            setInternalApiState("disconnected");
-        });
+        setInternalApi(new InternalApi("ws://127.0.0.1:15321"));
     }, []);
 
     useEffect(() => {
