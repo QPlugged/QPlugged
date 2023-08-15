@@ -8,7 +8,18 @@ const { spawn } = require("child_process");
 
 async function buildWinSetup() {
     if (process.platform !== "win32") return;
-    await compile("./build/setup.iss");
+    let success = false;
+    for (let i = 0; i < 2; i++) {
+        try {
+            console.log("正在打包安装包 (Win32)");
+            await compile("./build/setup.iss");
+            success = true;
+            break;
+        } catch {
+            console.warn(`打包失败 (Win32)，正在进行第 ${i + 1} 次重试`);
+        }
+    }
+    if (!success) throw new Error("打包失败 (Win32)");
 }
 
 async function compressExecutable() {
@@ -81,15 +92,26 @@ async function compressExecutable() {
     }
     if (!executablePath) throw new Error("未找到输出的可执行文件");
 
-    await new Promise((resolve, reject) =>
-        spawn(
-            upxExecutable,
-            ["-9q", "--lzma", "--compress-icons=0", executablePath],
-            { stdio: "inherit" },
-        )
-            .on("exit", () => resolve())
-            .on("error", (err) => reject(err)),
-    );
+    let success = false;
+    for (let i = 0; i < 2; i++) {
+        try {
+            console.log("正在压缩可执行文件");
+            await new Promise((resolve, reject) =>
+                spawn(
+                    upxExecutable,
+                    ["-9q", "--lzma", "--compress-icons=0", executablePath],
+                    { stdio: "inherit" },
+                )
+                    .on("exit", () => resolve())
+                    .on("error", (err) => reject(err)),
+            );
+            success = true;
+            break;
+        } catch {
+            console.warn(`压缩失败，正在进行第 ${i + 1} 次重试`);
+        }
+    }
+    if (!success) throw new Error("压缩失败");
 }
 
 compressExecutable().then(() => buildWinSetup());

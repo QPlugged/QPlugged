@@ -22,7 +22,7 @@ declare interface Messaging extends MessagingEventEmitter {
     ): Promise<Message[]>;
     sendMessage(
         entity: Entity,
-        elements: SendableMessageElement[],
+        elements: MessageSendableElement[],
     ): Promise<string>;
     getAvatars(entities: Entity[]): Promise<Map<Entity, string>>;
     getUserInfo(uid: string): Promise<User>;

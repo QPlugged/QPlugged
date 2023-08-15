@@ -1,9 +1,9 @@
 import { InternalApi } from "./api";
-import { IpcApi } from "./ipc";
+import { WSApi } from "./ws";
 
 export class LoginImpl implements Login {
-    private nt: IpcApi;
-    private business: IpcApi;
+    private nt: WSApi;
+    private business: WSApi;
     constructor({ nt, business }: InternalApi) {
         this.nt = nt;
         this.business = business;

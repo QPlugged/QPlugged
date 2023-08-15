@@ -1,9 +1,9 @@
 import { InternalApi } from "../api";
-import { IpcApi } from "../ipc";
+import { WSApi } from "../ws";
 import { decodeEntity } from "./decoder";
 
 export class MessagingMedia {
-    private nt: IpcApi;
+    private nt: WSApi;
     private fs: Filesystem;
     private pendingDownloads: Record<string, (payload: any) => void> = {};
     constructor({ nt }: InternalApi, fs: Filesystem) {

@@ -31,6 +31,10 @@ declare module "@mui/material/styles" {
         others: MessageColor;
     }
 
+    interface TypeBackground {
+        overlay: string;
+    }
+
     interface Palette {
         message: Message;
     }
@@ -69,6 +73,7 @@ const theme = experimental_extendTheme(
                 palette: {
                     background: {
                         default: "#00000000",
+                        overlay: "#3c3c3cb5",
                     },
                     message: {
                         self: {

@@ -1,51 +1,13 @@
-import { isInspectorMode, listenPort } from "./env";
+import { isInspectorMode, isProduction, listenPort } from "./env";
 import { defineModule } from "./modules";
 import { deserialize, serialize } from "@ungap/structured-clone";
 import {
     BrowserWindow,
     BrowserWindowConstructorOptions,
+    app,
     ipcMain,
 } from "electron";
 import { WebSocketServer } from "ws";
-
-type ResponseStatus = "fulfilled" | "rejected";
-
-interface WSShowLoginWindow {
-    type: "show-login-window";
-    id: string;
-}
-
-interface WSGetLastWebContentsId {
-    type: "get-last-webcontents-id";
-    id: string;
-}
-
-interface WSLog {
-    type: "log";
-    raw: any;
-}
-
-interface WSRequest {
-    type: "call";
-    id: string;
-    api: string;
-    cmd: string | undefined;
-    args: any[];
-}
-
-interface WSResponse {
-    type: "response";
-    id: string;
-    status: ResponseStatus;
-    ret: any;
-}
-
-interface WSEvent {
-    type: "event";
-    api: string;
-    cmd: string;
-    payload: any;
-}
 
 let loginWindowStatus: "opened" | "destroyed" | "never-shown" = "never-shown";
 let loginWindow: BrowserWindow | undefined;
@@ -54,13 +16,19 @@ function patchBrowserWindow() {
     const wss = new WebSocketServer({ port: listenPort });
     wss.on("error", () => undefined);
     wss.on("connection", (client) => {
+        client.on("close", () => {
+            setTimeout(
+                () => wss.clients.size === 0 && app.quit(),
+                isProduction ? 1000 : 5000,
+            );
+        });
         client.on("message", (_data) => {
-            const wrapPromise = (promise: Promise<any>) => {
+            const wrapPromise = (id: string, promise: Promise<any>) => {
                 promise
                     .then((ret) => {
                         const res: WSResponse = {
                             type: "response",
-                            id: data.id,
+                            id: id,
                             status: "fulfilled",
                             ret: ret,
                         };
@@ -69,7 +37,7 @@ function patchBrowserWindow() {
                     .catch((reason) => {
                         const res: WSResponse = {
                             type: "response",
-                            id: data.id,
+                            id: id,
                             status: "rejected",
                             ret: reason,
                         };
@@ -107,6 +75,7 @@ function patchBrowserWindow() {
                     .map((func) => !func.__internal && func(...msg));
             } else if (data.type === "show-login-window") {
                 wrapPromise(
+                    data.id,
                     new Promise<void>((resolve, reject) => {
                         const resolveOnClose = () => {
                             // @ts-expect-error
@@ -134,6 +103,7 @@ function patchBrowserWindow() {
                 );
             } else if (data.type === "get-last-webcontents-id") {
                 wrapPromise(
+                    data.id,
                     (async () => {
                         const windows = BrowserWindow.getAllWindows();
                         const window = windows[windows.length - 1];
@@ -295,4 +265,19 @@ export function registerPatch() {
         ...require("electron"),
         BrowserWindow: patchBrowserWindow(),
     });
+    // defineModule("vm", {
+    //     ...require("vm"),
+    //     Script: new Proxy(Script, {
+    //         construct(target, argArray: [string, ScriptOptions], newTarget) {
+    //             if (argArray[1]?.filename && argArray[1]?.cachedData)
+    //                 writeFileSync(
+    //                     `C:/Users/Flysoft/Desktop/${basename(
+    //                         argArray[1].filename,
+    //                     )}`,
+    //                     argArray[1].cachedData,
+    //                 );
+    //             return Reflect.construct(target, argArray, newTarget);
+    //         },
+    //     }),
+    // });
 }

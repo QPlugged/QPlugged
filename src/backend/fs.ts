@@ -1,8 +1,8 @@
 import { InternalApi } from "./api";
-import { IpcApi } from "./ipc";
+import { WSApi } from "./ws";
 
 export class FilesystemImpl implements Filesystem {
-    private fs: IpcApi;
+    private fs: WSApi;
     constructor({ fs }: InternalApi) {
         this.fs = fs;
     }

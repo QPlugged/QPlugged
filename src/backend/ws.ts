@@ -3,43 +3,9 @@ import { deserialize, serialize } from "@ungap/structured-clone";
 import EventEmitter from "eventemitter3";
 import { nanoid } from "nanoid";
 
-type ResponseStatus = "fulfilled" | "rejected";
-
-interface WSShowLoginWindow {
-    type: "show-login-window";
-    id: string;
-}
-
-interface WSLog {
-    type: "log";
-    raw: any;
-}
-
-interface WSRequest {
-    type: "call";
-    id: string;
-    api: string;
-    cmd: string | undefined;
-    args: any[];
-}
-
-interface WSResponse {
-    type: "response";
-    id: string;
-    status: ResponseStatus;
-    ret: any;
-}
-
-interface WSEvent {
-    type: "event";
-    api: string;
-    cmd: string;
-    payload: any;
-}
-
 type WSMessageWithoutId<T> = Omit<T, "id">;
 
-export class IpcApi extends EventEmitter {
+export class WSApi extends EventEmitter {
     private ws: WebSocket;
     private api: string;
     private pendingCalls: Record<
@@ -58,7 +24,7 @@ export class IpcApi extends EventEmitter {
                 | WSResponse;
             if (!isProduction)
                 console.debug(
-                    "[backend/ipc]",
+                    "[backend/ws]",
                     "DOWN",
                     ...Object.entries(data).flat(2),
                 );
@@ -82,7 +48,7 @@ export class IpcApi extends EventEmitter {
             ...data,
             id: id,
         };
-        if (!isProduction) console.debug("[backend/ipc]", "UP", _data);
+        if (!isProduction) console.debug("[backend/ws]", "UP", _data);
         this.ws.send(JSON.stringify(serialize(_data)));
         return new Promise<any>((resolve, reject) => {
             this.pendingCalls[id] = (status, ret) => {
@@ -111,12 +77,12 @@ export class IpcApi extends EventEmitter {
     }
 }
 
-export class Ipc extends WebSocket {
+export class WS extends WebSocket {
     constructor(url: string) {
         super(url);
         this.binaryType = "blob";
     }
     public useApi(api: string, events: string[] = []) {
-        return new IpcApi(this, api, events);
+        return new WSApi(this, api, events);
     }
 }

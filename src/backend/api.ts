@@ -1,11 +1,11 @@
-import { Ipc, IpcApi } from "./ipc";
+import { WS, WSApi } from "./ws";
 
-export class InternalApi extends Ipc {
-    public business: IpcApi;
-    public nt: IpcApi;
-    public fs: IpcApi;
-    public preload: IpcApi;
-    public preloadReady: IpcApi;
+export class InternalApi extends WS {
+    public business: WSApi;
+    public nt: WSApi;
+    public fs: WSApi;
+    public preload: WSApi;
+    public preloadReady: WSApi;
     constructor(url: string) {
         super(url);
         this.business = this.useApi("BusinessApi");

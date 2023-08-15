@@ -248,6 +248,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@babel/runtime@npm:^7.20.13":
+  version: 7.22.10
+  resolution: "@babel/runtime@npm:7.22.10"
+  dependencies:
+    regenerator-runtime: ^0.14.0
+  checksum: 524d41517e68953dbc73a4f3616b8475e5813f64e28ba89ff5fca2c044d535c2ea1a3f310df1e5bb06162e1f0b401b5c4af73fe6e2519ca2450d9d8c44cf268d
+  languageName: node
+  linkType: hard
+
 "@babel/template@npm:^7.22.5":
   version: 7.22.5
   resolution: "@babel/template@npm:7.22.5"
@@ -4261,8 +4270,10 @@ __metadata:
     nanoid: ^4.0.2
     react: ^18.2.0
     react-dom: ^18.2.0
+    react-hotkeys-hook: ^4.4.1
     react-router-dom: ^6.14.2
     react-scrollbars-custom: ^4.1.1
+    react-textarea-autosize: ^8.5.2
     react-virtuoso: ^4.4.2
     rome: ^12.1.3
     typescript: ^5.1.6
@@ -4308,6 +4319,16 @@ __metadata:
     react: ">= 16.3.0"
     react-dom: ">= 16.3.0"
   checksum: 21c3775db086e13020967627c20acd41d1ddbc7c7d7fca51491a5bbb54a0aa7e1730a4bc9af17141eb50a4954e547a5e25b2368f5f54b70db6f2686a897bacf2
+  languageName: node
+  linkType: hard
+
+"react-hotkeys-hook@npm:^4.4.1":
+  version: 4.4.1
+  resolution: "react-hotkeys-hook@npm:4.4.1"
+  peerDependencies:
+    react: ">=16.8.1"
+    react-dom: ">=16.8.1"
+  checksum: c03d5d013ec41f3a63a3dd7d704d2fc98fba227811f7a1222af8651705f1cef983b7ccc4325f9910fec920156b14b4f05101882dc7d0bde1601ba56c01d5f162
   languageName: node
   linkType: hard
 
@@ -4366,6 +4387,19 @@ __metadata:
   peerDependencies:
     react: ">=16.0.0"
   checksum: 95431e447191d48a00f6d86da866449aa483991aff09e642f599221a6080ee4aa36b9327e991eec301582413c1be9f36b96591df0310c384310af78cbeb35540
+  languageName: node
+  linkType: hard
+
+"react-textarea-autosize@npm:^8.5.2":
+  version: 8.5.2
+  resolution: "react-textarea-autosize@npm:8.5.2"
+  dependencies:
+    "@babel/runtime": ^7.20.13
+    use-composed-ref: ^1.3.0
+    use-latest: ^1.2.1
+  peerDependencies:
+    react: ^16.8.0 || ^17.0.0 || ^18.0.0
+  checksum: 48504e1c7bea01ea9632a2f663271519693926bb4dbdba7f7353178078df95a877fb298ff56e8ba41a324b212da2b3df13524de54c6a32a2de8241e46dceba98
   languageName: node
   linkType: hard
 
@@ -4440,6 +4474,13 @@ __metadata:
   version: 0.13.11
   resolution: "regenerator-runtime@npm:0.13.11"
   checksum: 27481628d22a1c4e3ff551096a683b424242a216fee44685467307f14d58020af1e19660bf2e26064de946bad7eff28950eae9f8209d55723e2d9351e632bbb4
+  languageName: node
+  linkType: hard
+
+"regenerator-runtime@npm:^0.14.0":
+  version: 0.14.0
+  resolution: "regenerator-runtime@npm:0.14.0"
+  checksum: 1c977ad82a82a4412e4f639d65d22be376d3ebdd30da2c003eeafdaaacd03fc00c2320f18120007ee700900979284fc78a9f00da7fb593f6e6eeebc673fba9a3
   languageName: node
   linkType: hard
 
@@ -5017,6 +5058,41 @@ __metadata:
   bin:
     update-browserslist-db: cli.js
   checksum: b98327518f9a345c7cad5437afae4d2ae7d865f9779554baf2a200fdf4bac4969076b679b1115434bd6557376bdd37ca7583d0f9b8f8e302d7d4cc1e91b5f231
+  languageName: node
+  linkType: hard
+
+"use-composed-ref@npm:^1.3.0":
+  version: 1.3.0
+  resolution: "use-composed-ref@npm:1.3.0"
+  peerDependencies:
+    react: ^16.8.0 || ^17.0.0 || ^18.0.0
+  checksum: f771cbadfdc91e03b7ab9eb32d0fc0cc647755711801bf507e891ad38c4bbc5f02b2509acadf9c965ec9c5f2f642fd33bdfdfb17b0873c4ad0a9b1f5e5e724bf
+  languageName: node
+  linkType: hard
+
+"use-isomorphic-layout-effect@npm:^1.1.1":
+  version: 1.1.2
+  resolution: "use-isomorphic-layout-effect@npm:1.1.2"
+  peerDependencies:
+    react: ^16.8.0 || ^17.0.0 || ^18.0.0
+  peerDependenciesMeta:
+    "@types/react":
+      optional: true
+  checksum: a6532f7fc9ae222c3725ff0308aaf1f1ddbd3c00d685ef9eee6714fd0684de5cb9741b432fbf51e61a784e2955424864f7ea9f99734a02f237b17ad3e18ea5cb
+  languageName: node
+  linkType: hard
+
+"use-latest@npm:^1.2.1":
+  version: 1.2.1
+  resolution: "use-latest@npm:1.2.1"
+  dependencies:
+    use-isomorphic-layout-effect: ^1.1.1
+  peerDependencies:
+    react: ^16.8.0 || ^17.0.0 || ^18.0.0
+  peerDependenciesMeta:
+    "@types/react":
+      optional: true
+  checksum: ed3f2ddddf6f21825e2ede4c2e0f0db8dcce5129802b69d1f0575fc1b42380436e8c76a6cd885d4e9aa8e292e60fb8b959c955f33c6a9123b83814a1a1875367
   languageName: node
   linkType: hard
 

@@ -39,6 +39,7 @@ export function MainPage() {
                 width="100%"
                 height="100%"
                 overflow="hidden"
+                padding={1}
                 sx={{
                     borderTopLeftRadius: 12,
                 }}

@@ -2,16 +2,21 @@ import { ApiContext } from "../../Api";
 import RemoteAvatar from "../../components/RemoteAvatar";
 import RemoteFixedSizeImage from "../../components/RemoteFixedSizeImage";
 import Scrollbar from "../../components/Scrollbar";
+import ChatBox from "./ChatBox";
 import { css } from "@emotion/react";
+import { ArrowDownward } from "@mui/icons-material";
 import {
     Box,
     Button,
     CircularProgress,
+    Fab,
+    Grow,
     Link,
     Stack,
     Typography,
 } from "@mui/material";
 import dayjs from "dayjs";
+import equal from "fast-deep-equal";
 import * as linkify from "linkifyjs";
 import Lottie from "lottie-react";
 import {
@@ -248,7 +253,10 @@ function MessageItemElementFace({
 }) {
     const api = useContext(ApiContext);
     const file = useMemo(
-        () => `${faceResourceDir}/apng/s${element.faceId}.png`,
+        () =>
+            element.faceType === "typcial-1"
+                ? `${faceResourceDir}/gif/s${element.faceId}.gif`
+                : `${faceResourceDir}/apng/s${element.faceId}.png`,
         [faceResourceDir, element],
     );
     const [lottieRes, setLottieRes] = useState<any>();
@@ -263,21 +271,20 @@ function MessageItemElementFace({
     }, [element, api, lottieResourceDir]);
 
     return element.faceType === "big" ? (
-        lottieRes ? (
-            <Lottie
-                animationData={lottieRes}
-                css={css({ width: "160px", height: "160px" })}
-            />
-        ) : (
-            <Box
-                position="absolute"
-                left="50%"
-                top="50%"
-                sx={{ transform: "translate(-50%,-50%)" }}
-            >
-                <CircularProgress />
-            </Box>
-        )
+        <Box sx={{ width: "160px", height: "160px", margin: "-12px" }}>
+            {lottieRes ? (
+                <Lottie animationData={lottieRes} />
+            ) : (
+                <Box
+                    position="absolute"
+                    left="50%"
+                    top="50%"
+                    sx={{ transform: "translate(-50%,-50%)" }}
+                >
+                    <CircularProgress />
+                </Box>
+            )}
+        </Box>
     ) : (
         <RemoteFixedSizeImage
             width={22}
@@ -323,7 +330,7 @@ function MessageItem({
     );
     const isSelf = useMemo(
         () => loggedInAccount.uid === message.sender.uid,
-        [],
+        [message, loggedInAccount],
     );
     const senderName = useMemo(
         () => message.sender.memberName || message.sender.name,
@@ -406,7 +413,7 @@ function MessageItem({
                         ? RADIUS_BIG
                         : RADIUS_SMALL,
                     borderTopRightRadius: isSelf
-                        ? isLastMessageSent
+                        ? isFirstMessageSent
                             ? RADIUS_BIG
                             : RADIUS_SMALL
                         : RADIUS_BIG,
@@ -511,7 +518,7 @@ function MessageItem({
 }
 
 const START_INDEX = Number.MAX_SAFE_INTEGER;
-const MESSAGE_COUNT = 80;
+const MESSAGE_COUNT = 50;
 
 export default function MessageList({ entity }: { entity: Entity }) {
     const api = useContext(ApiContext);
@@ -519,77 +526,60 @@ export default function MessageList({ entity }: { entity: Entity }) {
     const [authData, setAuthData] = useState<Account>();
     const [faceResourceDir, setFaceResourceDir] = useState<string>();
     const [lottieResourceDir, setLottieResourceDir] = useState<string>();
-    const [messages, setMessages] = useState<[number, Message][]>([]);
+    const [messages, setMessages] = useState<Map<string, Message>>(new Map());
+    const [messagesId, setMessagesId] = useState<string[]>([]);
     const [highlightedMessageId, setHighlightedMessageId] = useState<string>();
     const [avatars, setAvatars] = useState<Record<string, string>>({});
     const [atTop, setAtTop] = useState<boolean>(false);
+    const [atBottom, setAtBottom] = useState<boolean>(true);
     const [firstItemIndex, setFirstItemIndex] = useState<number>(START_INDEX);
 
     const fetchMoreMessages = useCallback(async () => {
         if (atTop) return;
-        return await new Promise<[number, Message][] | undefined>((resolve) => {
-            setMessages((oldMessages) => {
-                (async () => {
-                    const moreMessages =
-                        await api.messaging.getPreviousMessages(
-                            entity,
-                            oldMessages.length !== 0
-                                ? MESSAGE_COUNT + 1
-                                : MESSAGE_COUNT,
-                            oldMessages?.[0]?.[1]?.id || "0",
-                        );
-                    if (oldMessages.length !== 0)
-                        moreMessages.splice(moreMessages.length - 1);
-                    if (moreMessages.length === 0) {
-                        setAtTop(true);
-                        resolve(undefined);
-                        return;
-                    }
-
-                    setAvatars((oldAvatars) => {
+        return await new Promise<Map<string, Message> | undefined>(
+            (resolve) => {
+                setMessages((oldMessages) => {
+                    setMessagesId((oldMessagesId) => {
                         (async () => {
-                            const entities = moreMessages
-                                .filter((message) => {
-                                    return !oldAvatars[message.sender.uid];
-                                })
-                                .map((message) => ({
-                                    type: "user" as const,
-                                    uid: message.sender.uid,
-                                }));
-                            const avatarsMap = await api.messaging.getAvatars(
-                                entities,
-                            );
-                            for (const [entity, avatar] of avatarsMap)
-                                setAvatars((oldAvatars) => ({
-                                    ...oldAvatars,
-                                    [entity.uid]: avatar,
-                                }));
-                        })();
-                        return oldAvatars;
-                    });
+                            const moreMessages =
+                                await api.messaging.getPreviousMessages(
+                                    entity,
+                                    oldMessages.size !== 0
+                                        ? MESSAGE_COUNT + 1
+                                        : MESSAGE_COUNT,
+                                    oldMessagesId[0] || "0",
+                                );
+                            if (oldMessages.size !== 0)
+                                moreMessages.splice(moreMessages.length - 1);
+                            if (moreMessages.length === 0) {
+                                setAtTop(true);
+                                resolve(undefined);
+                                return;
+                            }
 
-                    const newMessages = moreMessages.map(
-                        (message, idx): [number, Message] => [
-                            moreMessages.length -
-                                idx +
-                                (oldMessages?.length || 0) -
-                                1,
-                            message,
-                        ],
-                    );
-                    setFirstItemIndex(
-                        (oldFirstItemIndex) =>
-                            oldFirstItemIndex - MESSAGE_COUNT,
-                    );
-                    setMessages((oldMessages) => {
-                        const messages = [...newMessages, ...oldMessages];
-                        resolve(messages);
-                        return messages;
+                            setFirstItemIndex(
+                                (oldFirstItemIndex) =>
+                                    oldFirstItemIndex - moreMessages.length,
+                            );
+                            setMessages((oldMessages) => {
+                                let map = oldMessages;
+                                for (const message of moreMessages) {
+                                    map = map.set(message.id, message);
+                                }
+                                resolve(messages);
+                                return new Map(map);
+                            });
+                            setMessagesId((oldMessagesId) => [
+                                ...moreMessages.map((message) => message.id),
+                                ...oldMessagesId,
+                            ]);
+                        })();
+                        return oldMessagesId;
                     });
-                })();
-                return oldMessages;
-            });
-        });
+                    return oldMessages;
+                });
+            },
+        );
     }, [entity, api, atTop]);
 
     const jumpToMessage = useCallback(
@@ -599,17 +589,15 @@ export default function MessageList({ entity }: { entity: Entity }) {
             if (!listHandle) throw new Error("列表未初始化");
             let _messages = messages;
             for (let i = 0; i < MAX_TRIES; i++) {
-                const sourceMessage = _messages.find(
-                    ([_, curMessage]) => curMessage.id === message.id,
-                );
+                const sourceMessage = _messages.get(message.id);
                 if (sourceMessage) {
                     return await new Promise<void>((resolve) =>
                         listHandle.scrollIntoView({
-                            index: _messages.length - sourceMessage[0] - 1,
+                            index: messagesId.indexOf(sourceMessage.id),
                             behavior: "smooth",
                             align: "center",
                             done() {
-                                setHighlightedMessageId(sourceMessage[1].id);
+                                setHighlightedMessageId(sourceMessage.id);
                                 resolve();
                             },
                         }),
@@ -622,8 +610,23 @@ export default function MessageList({ entity }: { entity: Entity }) {
                 } else throw new Error("源消息距离太远或已不存在");
             }
         },
-        [fetchMoreMessages, messages],
+        [fetchMoreMessages, messages, messagesId],
     );
+
+    const scrollToBottom = useCallback((isImmediately?: boolean) => {
+        setMessagesId((oldMessagesId) => {
+            const listHandle = listRef.current;
+            if (!listHandle) throw new Error("列表未初始化");
+            const lastMessageIdx = oldMessagesId.length - 1;
+            if (lastMessageIdx < 0) return oldMessagesId;
+            listHandle.scrollIntoView({
+                index: lastMessageIdx,
+                align: "end",
+                behavior: isImmediately ? "auto" : "smooth",
+            });
+            return oldMessagesId;
+        });
+    }, []);
 
     useEffect(() => {
         if (!highlightedMessageId) return;
@@ -647,55 +650,134 @@ export default function MessageList({ entity }: { entity: Entity }) {
     }, [api]);
 
     useEffect(() => {
-        setMessages([]);
+        setAvatars((oldAvatars) => {
+            (async () => {
+                const entities = [...messages]
+                    .filter(([_, message]) => {
+                        return !oldAvatars[message.sender.uid];
+                    })
+                    .map(([_, message]) => ({
+                        type: "user" as const,
+                        uid: message.sender.uid,
+                    }));
+                const avatarsMap = await api.messaging.getAvatars(entities);
+                for (const [entity, avatar] of avatarsMap)
+                    setAvatars((oldAvatars) => ({
+                        ...oldAvatars,
+                        [entity.uid]: avatar,
+                    }));
+            })();
+            return oldAvatars;
+        });
+    }, [api, messages]);
+
+    useEffect(() => {
+        const listener = (messages: Message[]) => {
+            const moreMessages = messages.filter(
+                (message) =>
+                    equal(message.entity, entity) &&
+                    !messagesId.includes(message.id),
+            );
+            setFirstItemIndex(
+                (oldFirstItemIndex) => oldFirstItemIndex - moreMessages.length,
+            );
+            setMessages((oldMessages) => {
+                let map = oldMessages;
+                for (const message of moreMessages) {
+                    map = map.set(message.id, message);
+                }
+                return new Map(map);
+            });
+            setMessagesId((oldMessagesId) => [
+                ...oldMessagesId,
+                ...moreMessages.map((message) => message.id),
+            ]);
+            if (atBottom) scrollToBottom();
+        };
+        api.messaging.on("new-messages", listener);
+        return () => {
+            api.messaging.off("new-messages", listener);
+        };
+    }, [api, entity, messagesId, atBottom, scrollToBottom]);
+
+    useEffect(() => {
+        setMessages(new Map());
+        setMessagesId([]);
         setAvatars({});
         setAtTop(false);
+        setAtBottom(true);
         setFirstItemIndex(START_INDEX);
     }, [entity]);
 
     useEffect(() => {
-        fetchMoreMessages();
-    }, [entity, fetchMoreMessages]);
+        fetchMoreMessages().then(() => scrollToBottom(true));
+    }, [entity, fetchMoreMessages, scrollToBottom]);
 
     return (
-        <Box
+        <Stack
             width="100%"
             height="100%"
+            direction="column"
+            overflow="hidden"
             sx={{
                 backgroundSize: "cover",
                 backgroundPosition: "center",
                 backgroundRepeat: "no-repeat",
+                borderBottomLeftRadius: 12,
+                borderBottomRightRadius: 12,
             }}
         >
-            <Virtuoso
-                ref={listRef}
-                components={{
-                    Scroller: Scrollbar,
-                }}
-                data={messages}
-                css={css({ width: "100%", height: "100%" })}
-                increaseViewportBy={{ top: 800, bottom: 800 }}
-                firstItemIndex={firstItemIndex}
-                initialTopMostItemIndex={MESSAGE_COUNT - 1}
-                startReached={() => fetchMoreMessages()}
-                followOutput={true}
-                totalCount={MESSAGE_COUNT}
-                itemContent={(_, [idx, message]) => (
-                    <MessageItem
-                        lastMessage={messages[messages.length - idx - 2]?.[1]}
-                        message={message}
-                        nextMessage={messages[messages.length - idx]?.[1]}
-                        highlighted={highlightedMessageId === message.id}
-                        entity={entity}
-                        avatar={avatars[message.sender.uid]}
-                        loggedInAccount={authData!}
-                        faceResourceDir={faceResourceDir!}
-                        lottieResourceDir={lottieResourceDir!}
-                        jumpToMessage={jumpToMessage}
-                        showProfile={() => undefined}
-                    />
-                )}
-            />
-        </Box>
+            <Box position="relative" flex={1}>
+                <Virtuoso
+                    ref={listRef}
+                    components={{
+                        Scroller: Scrollbar,
+                    }}
+                    css={css({ width: "100%", height: "100%" })}
+                    increaseViewportBy={{ top: 800, bottom: 800 }}
+                    firstItemIndex={firstItemIndex}
+                    initialTopMostItemIndex={MESSAGE_COUNT - 1}
+                    startReached={() => fetchMoreMessages()}
+                    atBottomStateChange={(atBottom) => setAtBottom(atBottom)}
+                    data={messagesId}
+                    itemContent={(_, id) => {
+                        const message = messages.get(id)!;
+
+                        return (
+                            <MessageItem
+                                lastMessage={messages.get(
+                                    messagesId[messagesId.indexOf(id) - 1],
+                                )}
+                                message={message}
+                                nextMessage={messages.get(
+                                    messagesId[messagesId.indexOf(id) + 1],
+                                )}
+                                highlighted={
+                                    highlightedMessageId === message.id
+                                }
+                                entity={entity}
+                                avatar={avatars[message.sender.uid]}
+                                loggedInAccount={authData!}
+                                faceResourceDir={faceResourceDir!}
+                                lottieResourceDir={lottieResourceDir!}
+                                jumpToMessage={jumpToMessage}
+                                showProfile={() => undefined}
+                            />
+                        );
+                    }}
+                />
+                <Grow in={!atBottom}>
+                    <Fab
+                        color="primary"
+                        size="small"
+                        sx={{ position: "absolute", right: 12, bottom: 12 }}
+                        onClick={() => scrollToBottom(false)}
+                    >
+                        <ArrowDownward />
+                    </Fab>
+                </Grow>
+            </Box>
+            <ChatBox entity={entity} scrollToBottom={scrollToBottom} />
+        </Stack>
     );
 }

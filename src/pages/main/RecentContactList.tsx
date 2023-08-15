@@ -66,7 +66,7 @@ export default function RecentContactList({
     }, [api]);
 
     useEffect(() => {
-        (async () => {
+        const listener = async () => {
             const list = await Promise.all(
                 Object.keys(entities).map(
                     async (_entity): Promise<RecentContact> => {
@@ -94,8 +94,13 @@ export default function RecentContactList({
                 else return a.latestMessage ? -1 : b.latestMessage ? 1 : 0;
             });
             setRecentContacts(sortedList);
-        })();
-    }, [entities]);
+        };
+        listener();
+        api.messaging.on("new-messages", listener);
+        return () => {
+            api.messaging.off("new-messages", listener);
+        };
+    }, [entities, api]);
 
     useEffect(() => {
         const listener = async (messages: Message[]) => {

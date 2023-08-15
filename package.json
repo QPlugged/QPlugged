@@ -30,8 +30,10 @@
         "nanoid": "^4.0.2",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
+        "react-hotkeys-hook": "^4.4.1",
         "react-router-dom": "^6.14.2",
         "react-scrollbars-custom": "^4.1.1",
+        "react-textarea-autosize": "^8.5.2",
         "react-virtuoso": "^4.4.2",
         "ws": "^8.13.0"
     },

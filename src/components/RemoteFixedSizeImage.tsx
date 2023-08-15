@@ -6,7 +6,6 @@ import axios from "axios";
 import { atom, useAtom } from "jotai";
 import { useContext, useEffect, useMemo, useState } from "react";
 
-const mountedImagesCountAtom = atom(1);
 const cachedImagesAtom = atom(new Map<string, string>());
 
 export default function RemoteFixedSizeImage({
@@ -22,22 +21,22 @@ export default function RemoteFixedSizeImage({
     height: number;
     alt?: string;
 }) {
-    const TRANSITION_DURATION = 50;
+    const MAX_CACHED_IMAGES_COUNT = 1000;
     const api = useContext(ApiContext);
     const [cachedImages, setCachedImages] = useAtom(cachedImagesAtom);
-    const [mountedImagesCount, setMountedImagesCount] = useAtom(
-        mountedImagesCountAtom,
-    );
-    const maxCachedImagesCount = mountedImagesCount;
+
     const cachedImageObjectURL = useMemo(
         () => cachedImages.get((file || url)!),
         [cachedImages, file, url],
     );
-    const [imageObjectURL, setImageObjectURL] = useState<string | undefined>(
-        cachedImageObjectURL,
-    );
-    const [loaded, setLoaded] = useState<boolean>(!!cachedImageObjectURL);
+    const [imageObjectURL, setImageObjectURL] = useState<string>();
+    const [loaded, setLoaded] = useState<boolean>(false);
     const [failed, setFailed] = useState<boolean>(false);
+
+    useEffect(() => {
+        if (cachedImageObjectURL && !imageObjectURL)
+            setImageObjectURL(cachedImageObjectURL);
+    }, [cachedImageObjectURL, imageObjectURL]);
 
     useEffect(() => {
         (async () => {
@@ -53,36 +52,24 @@ export default function RemoteFixedSizeImage({
             setImageObjectURL(objectURL);
         })().catch(() => {
             setFailed(true);
-            setLoaded(true);
         });
     }, [file, url, api, imageObjectURL]);
 
     useEffect(() => {
-        if (imageObjectURL) {
-            const timer = setTimeout(
-                () => setLoaded(true),
-                TRANSITION_DURATION,
-            );
-            return () => clearTimeout(timer);
-        }
-    }, [imageObjectURL]);
-
-    useEffect(() => {
-        setMountedImagesCount((oldCount) => oldCount + 1);
         return () => {
             if (imageObjectURL)
                 setCachedImages((oldCachedImages) => {
-                    const map = new Map(
-                        oldCachedImages.set((file || url)!, imageObjectURL),
+                    const map = oldCachedImages.set(
+                        (file || url)!,
+                        imageObjectURL,
                     );
                     for (const [key, objectURL] of map) {
-                        if (map.size <= maxCachedImagesCount) break;
+                        if (map.size <= MAX_CACHED_IMAGES_COUNT) break;
                         URL.revokeObjectURL(objectURL);
                         map.delete(key);
                     }
-                    return map;
+                    return new Map(map);
                 });
-            setMountedImagesCount((oldCount) => oldCount - 1);
         };
     }, [imageObjectURL]);
 
@@ -118,9 +105,9 @@ export default function RemoteFixedSizeImage({
                     width: "100%",
                     height: "100%",
                     opacity: failed || !loaded ? 0 : 1,
-                    transition: `all ${TRANSITION_DURATION}ms ease`,
                     zIndex: 1,
                 })}
+                onLoad={() => setLoaded(true)}
                 onError={() => setFailed(true)}
             />
         </Stack>
