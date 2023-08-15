@@ -555,6 +555,7 @@ export default function MessageList({ entity }: { entity: Entity }) {
     const [avatars, setAvatars] = useState<Record<string, string>>({});
     const [atTop, setAtTop] = useState<boolean>(false);
     const [atBottom, setAtBottom] = useState<boolean>(true);
+    const [loading, setLoading] = useState<boolean>(true);
     const [firstItemIndex, setFirstItemIndex] = useState<number>(START_INDEX);
     const { colorScheme } = useColorScheme();
 
@@ -750,53 +751,67 @@ export default function MessageList({ entity }: { entity: Entity }) {
         setAtTop(false);
         setAtBottom(true);
         setFirstItemIndex(START_INDEX);
+        setLoading(false);
     }, [entity]);
 
     useEffect(() => {
-        fetchMoreMessages().then(() => scrollToBottom(true));
-    }, [entity, fetchMoreMessages, scrollToBottom]);
+        if (!loading) fetchMoreMessages().then(() => scrollToBottom(true));
+    }, [entity, fetchMoreMessages, scrollToBottom, loading]);
 
     return (
         <Stack width="100%" height="100%" direction="column">
             <Box position="relative" flex={1}>
-                <Virtuoso
-                    ref={listRef}
-                    components={{
-                        Scroller: Scrollbar,
-                    }}
-                    css={css({ width: "100%", height: "100%" })}
-                    increaseViewportBy={{ top: 800, bottom: 800 }}
-                    firstItemIndex={firstItemIndex}
-                    initialTopMostItemIndex={MESSAGE_COUNT - 1}
-                    startReached={() => fetchMoreMessages()}
-                    atBottomStateChange={(atBottom) => setAtBottom(atBottom)}
-                    data={messagesId}
-                    itemContent={(_, id) => {
-                        const message = messages.get(id)!;
+                {!loading ? (
+                    <Virtuoso
+                        ref={listRef}
+                        components={{
+                            Scroller: Scrollbar,
+                        }}
+                        css={css({ width: "100%", height: "100%" })}
+                        increaseViewportBy={{ top: 800, bottom: 800 }}
+                        firstItemIndex={firstItemIndex}
+                        initialTopMostItemIndex={MESSAGE_COUNT - 1}
+                        startReached={() => fetchMoreMessages()}
+                        atBottomStateChange={(atBottom) =>
+                            setAtBottom(atBottom)
+                        }
+                        data={messagesId}
+                        itemContent={(_, id) => {
+                            const message = messages.get(id)!;
 
-                        return (
-                            <MessageItem
-                                lastMessage={messages.get(
-                                    messagesId[messagesId.indexOf(id) - 1],
-                                )}
-                                message={message}
-                                nextMessage={messages.get(
-                                    messagesId[messagesId.indexOf(id) + 1],
-                                )}
-                                highlighted={
-                                    highlightedMessageId === message.id
-                                }
-                                entity={entity}
-                                avatar={avatars[message.sender.uid]}
-                                loggedInAccount={authData!}
-                                faceResourceDir={faceResourceDir!}
-                                lottieResourceDir={lottieResourceDir!}
-                                jumpToMessage={jumpToMessage}
-                                showProfile={() => undefined}
-                            />
-                        );
-                    }}
-                />
+                            return (
+                                <MessageItem
+                                    lastMessage={messages.get(
+                                        messagesId[messagesId.indexOf(id) - 1],
+                                    )}
+                                    message={message}
+                                    nextMessage={messages.get(
+                                        messagesId[messagesId.indexOf(id) + 1],
+                                    )}
+                                    highlighted={
+                                        highlightedMessageId === message.id
+                                    }
+                                    entity={entity}
+                                    avatar={avatars[message.sender.uid]}
+                                    loggedInAccount={authData!}
+                                    faceResourceDir={faceResourceDir!}
+                                    lottieResourceDir={lottieResourceDir!}
+                                    jumpToMessage={jumpToMessage}
+                                    showProfile={() => undefined}
+                                />
+                            );
+                        }}
+                    />
+                ) : (
+                    <Box
+                        position="absolute"
+                        left="50%"
+                        top="50%"
+                        sx={{ transform: "translate(-50%,-50%)" }}
+                    >
+                        <CircularProgress />
+                    </Box>
+                )}
                 <Grow in={!atBottom}>
                     <Fab
                         color="primary"
