@@ -14,11 +14,13 @@ import {
     Link,
     Stack,
     Typography,
+    useColorScheme,
 } from "@mui/material";
 import dayjs from "dayjs";
 import equal from "fast-deep-equal";
-import * as linkify from "linkifyjs";
+import hljs from "highlight.js";
 import Lottie from "lottie-react";
+import MarkdownIt from "markdown-it";
 import {
     Fragment,
     useCallback,
@@ -136,46 +138,67 @@ function MessageItemElementRevoke({
     );
 }
 
+const markdownIt: MarkdownIt = new MarkdownIt({
+    linkify: true,
+    highlight(str, lang, _) {
+        if (lang && hljs.getLanguage(lang)) {
+            try {
+                return `<pre class="hljs"><code>${
+                    hljs.highlight(str, {
+                        language: lang,
+                        ignoreIllegals: true,
+                    }).value
+                }</code></pre>`;
+            } catch (__) {}
+        }
+
+        return `<pre class="hljs"><code>${markdownIt.utils.escapeHtml(
+            str,
+        )}</code></pre>`;
+    },
+});
+markdownIt.renderer.rules.paragraph_open = () => "<span>";
+markdownIt.renderer.rules.paragraph_close = (tokens, idx) =>
+    `</span>${idx !== tokens.length - 1 ? "<br>" : ""}`;
+
 function MessageItemElementText({
     element,
 }: {
     element: MessageNonSendableElementText;
 }) {
-    const components = useMemo(() => {
-        const components: (["text", string] | ["url", string, string])[] = [];
-        let cursor = 0;
-        const ret = linkify.find(element.content, { defaultProtocol: "https" });
-        ret.map(({ start, href, end }) => {
-            components.push(
-                ["text", element.content.substring(cursor, start)],
-                ["url", href, element.content.substring(start, end)],
-            );
-            cursor = end;
-        });
-        components.push(["text", element.content.substring(cursor)]);
-        return components;
-    }, [element]);
+    const html = useMemo(() => markdownIt.render(element.content), [element]);
 
     return (
         <>
-            {components.map(([type, ...args], idx) => (
-                // rome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-                <Fragment key={idx}>
-                    {type === "text" ? (
-                        args[0].split("\n").map((text, idx, array) => (
-                            // rome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-                            <Fragment key={idx}>
-                                <span>{text}</span>
-                                {idx !== array.length - 1 && <br />}
-                            </Fragment>
-                        ))
-                    ) : type === "url" ? (
-                        <Link href={args[0]} target="_blank" rel="noreferrer">
-                            {args[1]}
-                        </Link>
-                    ) : null}
-                </Fragment>
-            ))}
+            <span
+                // rome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
+                dangerouslySetInnerHTML={{ __html: html }}
+                css={{
+                    "& a": {
+                        margin: 0,
+                        fontFamily: "inherit",
+                        fontWeight: "inherit",
+                        fontSize: "inherit",
+                        lineHeight: "inherit",
+                        letterSpacing: "inherit",
+                        color: "var(--mui-palette-primary-main)",
+                        textDecoration: "underline",
+                        textDecorationColor:
+                            "rgba(var(--mui-palette-primary-mainChannel) / 0.4)",
+                        "&:hover": {
+                            textDecorationColor: "inherit",
+                        },
+                    },
+                    "& pre": {
+                        margin: "2px 0",
+                        background: "none",
+                    },
+                    "& pre, & code": {
+                        fontFamily:
+                            "ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace",
+                    },
+                }}
+            />
         </>
     );
 }
@@ -533,6 +556,7 @@ export default function MessageList({ entity }: { entity: Entity }) {
     const [atTop, setAtTop] = useState<boolean>(false);
     const [atBottom, setAtBottom] = useState<boolean>(true);
     const [firstItemIndex, setFirstItemIndex] = useState<number>(START_INDEX);
+    const { colorScheme } = useColorScheme();
 
     const fetchMoreMessages = useCallback(async () => {
         if (atTop) return;
@@ -627,6 +651,25 @@ export default function MessageList({ entity }: { entity: Entity }) {
             return oldMessagesId;
         });
     }, []);
+
+    useEffect(() => {
+        let tag: HTMLElement;
+        (async () => {
+            let css: string;
+            if (colorScheme === "light")
+                css = (await import("highlight.js/styles/github.css?raw"))
+                    .default;
+            else
+                css = (await import("highlight.js/styles/github-dark.css?raw"))
+                    .default;
+            tag = document.createElement("style");
+            tag.innerHTML = css;
+            document.head.appendChild(tag);
+        })();
+        return () => {
+            tag?.remove();
+        };
+    }, [colorScheme]);
 
     useEffect(() => {
         if (!highlightedMessageId) return;
