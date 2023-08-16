@@ -1,7 +1,6 @@
 import { ApiContext } from "../../Api";
 import { Attachment, EmojiEmotions, Send } from "@mui/icons-material";
 import { Box, IconButton, Stack, TextareaAutosize } from "@mui/material";
-import { open } from "@tauri-apps/plugin-dialog";
 import { useCallback, useContext, useMemo, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 
