@@ -736,7 +736,7 @@ export default function MessageList({ entity }: { entity: Entity }) {
                 return new Map(map);
             });
 
-            setTimeout(() => scrollToBottom(), 0);
+            if (atBottom) setTimeout(() => scrollToBottom(), 0);
         };
         api.messaging.on("new-messages", listener);
         return () => {
