@@ -19,17 +19,38 @@ export class MessagingImpl
     implements Messaging
 {
     private nt: WSApi;
+    private business: WSApi;
     private media: MessagingMedia;
     constructor(api: InternalApi, fs: Filesystem) {
         super();
-        const { nt } = api;
+        const { nt, business } = api;
         this.nt = nt;
+        this.business = business;
         this.media = new MessagingMedia(api, fs);
         this.nt.on("nodeIKernelMsgListener/onRecvMsg", (payload: any) => {
             const messages = (payload?.msgList as any[])?.map((message) =>
                 encodeMessage(message, this.media),
             );
-            if (messages) this.emit("new-messages", messages);
+
+            if (messages)
+                Promise.all(
+                    messages.map(async (message) => {
+                        await this.business.send("setBadge", { unreadCnt: 0 });
+                        await this.nt.send(
+                            "nodeIKernelMsgService/setMsgRead",
+                            { peer: decodeEntity(message.entity) },
+                            undefined,
+                        );
+                        return await this.getPreviousMessages(
+                            message.entity,
+                            1,
+                            message.id,
+                            false,
+                        );
+                    }),
+                ).then((messages) =>
+                    this.emit("new-messages", messages.flat()),
+                );
         });
         this.nt.on("nodeIKernelMsgListener/onAddSendMsg", (payload: any) => {
             const message =

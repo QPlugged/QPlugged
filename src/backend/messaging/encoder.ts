@@ -67,6 +67,7 @@ export function encodeImageElement(
         { 1001: "typical", 1000: "sticker" }[
             ele.picElement.picType as number
         ] || ele.picElement.picType;
+    const isDownloadRawImage = type === "sticker";
     return {
         type: "image",
         id: ele.elementId,
@@ -75,10 +76,11 @@ export function encodeImageElement(
         progress: media.downloadMedia(
             messageId,
             ele.elementId,
+            isDownloadRawImage ? 1 : 2,
             entity,
-            ele.picElement.original
-                ? ele.picElement.thumbPath.get(0) || ele.picElement.sourcePath
-                : ele.picElement.sourcePath,
+            isDownloadRawImage
+                ? ele.picElement.sourcePath
+                : ele.picElement.thumbPath.get(0),
         ),
         width: ele.picElement.picWidth,
         height: ele.picElement.picHeight,

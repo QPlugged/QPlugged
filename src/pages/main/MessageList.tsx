@@ -149,7 +149,7 @@ const markdownIt: MarkdownIt = new MarkdownIt({
                         ignoreIllegals: true,
                     }).value
                 }</code></pre>`;
-            } catch (__) {}
+            } catch {}
         }
 
         return `<pre class="hljs"><code>${markdownIt.utils.escapeHtml(

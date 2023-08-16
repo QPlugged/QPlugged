@@ -11,10 +11,16 @@ export class MessagingMedia {
         this.fs = fs;
         this.nt.on(
             "nodeIKernelMsgListener/onRichMediaDownloadComplete",
-            (payload) =>
-                this.pendingDownloads[payload?.notifyInfo?.msgElementId]?.(
-                    payload,
-                ),
+            (payload) => {
+                if (this.pendingDownloads[payload?.notifyInfo?.msgElementId]) {
+                    this.pendingDownloads[payload.notifyInfo.msgElementId](
+                        payload,
+                    );
+                    delete this.pendingDownloads[
+                        payload.notifyInfo.msgElementId
+                    ];
+                }
+            },
         );
     }
     public async prepareImageElement(
@@ -61,27 +67,31 @@ export class MessagingMedia {
     public async downloadMedia(
         msgId: string,
         elementId: string,
+        downloadType: number,
         entity: Entity,
         filePath: string,
     ): Promise<string> {
         if (await this.fs.pathExist(filePath)) return filePath;
+        const peer = decodeEntity(entity);
+        // rome-ignore lint/performance/noDelete: <explanation>
+        delete peer.guildId;
         this.nt.send(
             "nodeIKernelMsgService/downloadRichMedia",
             {
                 getReq: {
-                    ...decodeEntity(entity),
+                    ...peer,
                     msgId: msgId,
                     elementId: elementId,
                     thumbSize: 0,
-                    downloadType: 1,
+                    downloadType: downloadType,
                     filePath: filePath,
                 },
             },
             undefined,
         );
         return await new Promise<string>((resolve) => {
-            this.pendingDownloads[elementId] = (ret) =>
-                resolve(ret.notifyInfo.filePath || filePath);
+            this.pendingDownloads[elementId] = (payload) =>
+                resolve(payload.notifyInfo.filePath || filePath);
         });
     }
 }

@@ -48,7 +48,12 @@ export class WSApi extends EventEmitter {
             ...data,
             id: id,
         };
-        if (!isProduction) console.debug("[backend/ws]", "UP", _data);
+        if (!isProduction)
+            console.debug(
+                "[backend/ws]",
+                "UP",
+                ...Object.entries(data).flat(2),
+            );
         this.ws.send(JSON.stringify(serialize(_data)));
         return new Promise<any>((resolve, reject) => {
             this.pendingCalls[id] = (status, ret) => {
