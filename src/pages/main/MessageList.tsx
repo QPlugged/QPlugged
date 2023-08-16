@@ -540,7 +540,7 @@ function MessageItem({
     );
 }
 
-const START_INDEX = Number.MAX_SAFE_INTEGER;
+const START_INDEX = Math.round(Number.MAX_SAFE_INTEGER / 2);
 const MESSAGE_COUNT = 50;
 
 export default function MessageList({ entity }: { entity: Entity }) {
