@@ -17,7 +17,8 @@ declare namespace Endpoint {
     type IncomingMessage =
         | Message.ShowLoginWindow
         | Message.GetLastWebContentsId
-        | Message.Call;
+        | Message.Call
+        | Message.ReadPtt;
     type OutgoingMessage = Message.Log | Message.Response | Message.Event;
     type MessageWithoutId<T> = Omit<T, "id">;
     declare namespace Message {
@@ -58,6 +59,12 @@ declare namespace Endpoint {
             api: string;
             cmd: string;
             payload: any;
+        }
+
+        declare interface ReadPtt {
+            type: "read-ptt";
+            id: string;
+            file: string;
         }
     }
 }

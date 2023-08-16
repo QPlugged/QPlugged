@@ -1,5 +1,3 @@
-import { MessagingMedia } from "./media";
-
 export function encodeReplyElement(ele: any): MessageNonSendableElementReply {
     return {
         type: "reply",
@@ -88,6 +86,17 @@ export function encodeImageElement(
     };
 }
 
+export function encodeFileElement(ele: any): MessageNonSendableElementFile {
+    return {
+        type: "file",
+        id: ele.elementId,
+        name: ele.fileElement.fileName,
+        file: ele.fileElement.filePath,
+        size: parseInt(ele.fileElement.fileSize) || 0,
+        raw: ele,
+    };
+}
+
 export function encodeFaceElement(ele: any): MessageNonSendableElementFace {
     return {
         type: "face",
@@ -141,6 +150,7 @@ export function encodeMessage(raw: any, media: MessagingMedia): Message {
                         progress.push(element.progress!);
                         return element;
                     },
+                    3: encodeFileElement,
                     6: encodeFaceElement,
                     7: encodeReplyElement,
                     8: { 1: encodeRevokeElement }[

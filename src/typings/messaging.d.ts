@@ -5,7 +5,43 @@ declare interface MessagingEvents {
 type MessagingEventEmitter =
     import("eventemitter3").EventEmitter<MessagingEvents>;
 
+declare interface MessagingMediaEvents {
+    "download-progress-update": (
+        elementId: string,
+        current: number,
+        total: number,
+    ) => void;
+    "download-finish": (elementId: string) => void;
+}
+
+type MessagingMediaEventEmitter =
+    import("eventemitter3").EventEmitter<MessagingMediaEvents>;
+
+declare interface MessagingMedia extends MessagingMediaEventEmitter {
+    downloadMedia(
+        msgId: string,
+        elementId: string,
+        downloadType: number,
+        entity: Entity,
+        filePath: string,
+    ): Promise<string>;
+    cancelDownloadMedia(
+        msgId: string,
+        elementId: string,
+        downloadType: number,
+        entity: Entity,
+        filePath: string,
+    ): Promise<void>;
+    prepareFileElement(file: string): Promise<any>;
+    prepareImageElement(
+        file: string,
+        imageType: MessageElementImageType,
+        imageSubType: number,
+    ): Promise<any>;
+}
+
 declare interface Messaging extends MessagingEventEmitter {
+    media: MessagingMedia;
     getFaceResourceDir(): Promise<string>;
     getLottieResourceDir(): Promise<string>;
     getPreviousMessages(
@@ -48,6 +84,7 @@ declare type MessageNonSendableElement =
     | MessageNonSendableElementText
     | MessageNonSendableElementMention
     | MessageNonSendableElementImage
+    | MessageNonSendableElementFile
     | MessageNonSendableElementFace
     | MessageNonSendableElementRaw;
 
@@ -56,6 +93,7 @@ declare type MessageSendableElement =
     | MessageSendableElementText
     | MessageSendableElementMention
     | MessageSendableElementImage
+    | MessageSendableElementFile
     | MessageSendableElementFace
     | MessageSendableElementRaw;
 
@@ -127,7 +165,6 @@ declare type MessageElementImageType = "typcial" | "sticker" | number;
 
 interface MessageCommonElementImage {
     type: "image";
-
     imageType: MessageElementImageType;
     imageSubType: number;
 }
@@ -145,6 +182,22 @@ declare interface MessageSendableElementImage
         MessageCommonElementImage {
     file: string;
 }
+
+interface MessageCommonElementFile {
+    type: "file";
+    size: number;
+    file: string;
+}
+
+declare interface MessageNonSendableElementFile
+    extends MessageNonSendableElementBase,
+        MessageCommonElementFile {
+    name: string;
+}
+
+declare interface MessageSendableElementFile
+    extends MessageSendableElementBase,
+        MessageCommonElementFile {}
 
 declare type MessageElementFaceType =
     | "typcial-1"

@@ -1,23 +1,40 @@
 import { decodeEntity } from "./decoder";
+import { basename } from "@tauri-apps/api/path";
+import EventEmitter from "eventemitter3";
 
-export class MessagingMedia {
+export class MessagingMediaImpl
+    extends EventEmitter<MessagingMediaEvents>
+    implements MessagingMedia
+{
     private nt: InternalApi;
     private fs: Filesystem;
     private pendingDownloads: Record<string, (payload: any) => void> = {};
     constructor({ nt }: InternalApis, fs: Filesystem) {
+        super();
         this.nt = nt;
         this.fs = fs;
         this.nt.on(
             "nodeIKernelMsgListener/onRichMediaDownloadComplete",
             (payload: any) => {
-                if (this.pendingDownloads[payload?.notifyInfo?.msgElementId]) {
-                    this.pendingDownloads[payload.notifyInfo.msgElementId](
-                        payload,
-                    );
-                    delete this.pendingDownloads[
-                        payload.notifyInfo.msgElementId
-                    ];
+                const id = payload?.notifyInfo?.msgElementId;
+                if (this.pendingDownloads[id]) {
+                    this.emit("download-finish", id);
+                    this.pendingDownloads[id](payload);
+                    delete this.pendingDownloads[id];
                 }
+            },
+        );
+        this.nt.on(
+            "nodeIKernelMsgListener/onRichMediaProgerssUpdate",
+            (payload: any) => {
+                const id = payload?.notifyInfo?.msgElementId;
+                if (id)
+                    this.emit(
+                        "download-progress-update",
+                        id,
+                        parseInt(payload.notifyInfo.fileProgress),
+                        parseInt(payload.notifyInfo.totalSize),
+                    );
             },
         );
     }
@@ -62,6 +79,24 @@ export class MessagingMedia {
             summary: "",
         };
     }
+    public async prepareFileElement(file: string): Promise<any> {
+        const fileSize = await this.fs.getFileSize(file);
+        return {
+            fileMd5: "",
+            fileName: await basename(file),
+            filePath: file,
+            fileSize: fileSize,
+            picHeight: 0,
+            picWidth: 0,
+            picThumbPath: new Map(),
+            file10MMd5: "",
+            fileSha: "",
+            fileSha3: "",
+            fileUuid: "",
+            fileSubId: "",
+            thumbFileSize: 750,
+        };
+    }
     public async downloadMedia(
         msgId: string,
         elementId: string,
@@ -91,5 +126,30 @@ export class MessagingMedia {
             this.pendingDownloads[elementId] = (payload) =>
                 resolve(payload.notifyInfo.filePath || filePath);
         });
+    }
+    public async cancelDownloadMedia(
+        msgId: string,
+        elementId: string,
+        downloadType: number,
+        entity: Entity,
+        filePath: string,
+    ): Promise<void> {
+        const peer = decodeEntity(entity);
+        // rome-ignore lint/performance/noDelete: <explanation>
+        delete peer.guildId;
+        await this.nt.send(
+            "nodeIKernelMsgService/cancelGetRichMediaElement",
+            {
+                getReq: {
+                    ...peer,
+                    msgId: msgId,
+                    elementId: elementId,
+                    thumbSize: 0,
+                    downloadType: downloadType,
+                    filePath: filePath,
+                },
+            },
+            undefined,
+        );
     }
 }

@@ -4,23 +4,28 @@ import RemoteFixedSizeImage from "../../components/RemoteFixedSizeImage";
 import Scrollbar from "../../components/Scrollbar";
 import ChatBox from "./ChatBox";
 import { css } from "@emotion/react";
-import { ArrowDownward } from "@mui/icons-material";
+import { ArrowDownward, Close, Download, Folder } from "@mui/icons-material";
 import {
     Box,
     Button,
     CircularProgress,
     Fab,
     Grow,
+    IconButton,
     Link,
     Stack,
     Typography,
     useColorScheme,
 } from "@mui/material";
+import { dirname } from "@tauri-apps/api/path";
+import { open } from "@tauri-apps/plugin-shell";
 import dayjs from "dayjs";
 import equal from "fast-deep-equal";
 import hljs from "highlight.js";
+import { atom, useAtom } from "jotai";
 import Lottie from "lottie-react";
 import MarkdownIt from "markdown-it";
+import prettyBytes from "pretty-bytes";
 import {
     Fragment,
     useCallback,
@@ -265,6 +270,195 @@ function MessageItemElementImage({
     );
 }
 
+const downloadQueueAtom = atom<Map<string, [number, number] | true>>(new Map());
+
+function MessageItemElementFile({
+    element,
+    message,
+}: { element: MessageNonSendableElementFile; message: Message }) {
+    const api = useContext(ApiContext);
+    const size = useMemo(() => prettyBytes(element.size), [element]);
+    const [downloadQueue, setDownloadQueue] = useAtom(downloadQueueAtom);
+    const progress = useMemo(
+        () => downloadQueue.get(element.id),
+        [element, downloadQueue],
+    );
+    const [downloaded, setDownloaded] = useState<boolean>();
+
+    const updateDownloadedState = useCallback(async () => {
+        const downloaded = await api.fs.pathExist(element.file);
+        setDownloaded(downloaded);
+        return downloaded;
+    }, [api, element]);
+
+    const downloadFile = useCallback(async () => {
+        if ((await updateDownloadedState()) !== false) return;
+        setDownloadQueue(
+            (oldDownloadQueue) =>
+                new Map(oldDownloadQueue.set(element.id, true)),
+        );
+        await api.messaging.media.downloadMedia(
+            message.id,
+            element.id,
+            1,
+            message.entity,
+            "",
+        );
+    }, [api, updateDownloadedState]);
+
+    const cancelDownloadFile = useCallback(async () => {
+        if (!progress) return;
+        setDownloadQueue((oldDownloadQueue) => {
+            oldDownloadQueue.delete(element.id);
+            return new Map(oldDownloadQueue);
+        });
+        await api.messaging.media.cancelDownloadMedia(
+            message.id,
+            element.id,
+            1,
+            message.entity,
+            "",
+        );
+        await updateDownloadedState();
+    }, [api, progress, updateDownloadedState]);
+
+    const openFileInFolder = useCallback(async () => {
+        if ((await updateDownloadedState()) !== true) return;
+        open(await dirname(element.file));
+    }, [downloaded, element, updateDownloadedState]);
+
+    useEffect(() => {
+        const listener = (
+            elementId: string,
+            current: number,
+            total: number,
+        ) => {
+            if (elementId !== element.id) return;
+            setDownloadQueue(
+                (oldDownloadQueue) =>
+                    new Map(oldDownloadQueue.set(element.id, [current, total])),
+            );
+        };
+        api.messaging.media.on("download-progress-update", listener);
+        return () => {
+            api.messaging.media.off("download-progress-update", listener);
+        };
+    }, [api, element]);
+
+    useEffect(() => {
+        const listener = (elementId: string) => {
+            if (elementId !== element.id) return;
+            setDownloadQueue((oldDownloadQueue) => {
+                oldDownloadQueue.delete(element.id);
+                return new Map(oldDownloadQueue);
+            });
+        };
+        api.messaging.media.on("download-finish", listener);
+        return () => {
+            api.messaging.media.off("download-finish", listener);
+        };
+    }, [api, element, updateDownloadedState]);
+
+    useEffect(() => {
+        updateDownloadedState();
+    }, [updateDownloadedState]);
+
+    return (
+        <Stack
+            direction="row"
+            alignItems="center"
+            gap={2}
+            minWidth={200}
+            padding={0.5}
+        >
+            <Box position="relative">
+                <Fab
+                    size="medium"
+                    color="secondary"
+                    onClick={
+                        downloaded
+                            ? openFileInFolder
+                            : progress
+                            ? cancelDownloadFile
+                            : downloadFile
+                    }
+                >
+                    {downloaded ? (
+                        <Folder />
+                    ) : progress ? (
+                        <Close />
+                    ) : (
+                        <Download />
+                    )}
+                    <Grow in={progress === true}>
+                        <Box
+                            position="absolute"
+                            top={-5}
+                            left={-5}
+                            zIndex={1}
+                            width={58}
+                            height={58}
+                            sx={{ transform: "rotate(-90deg)" }}
+                        >
+                            <CircularProgress
+                                variant="indeterminate"
+                                size="100%"
+                                color="secondary"
+                                thickness={2}
+                            />
+                        </Box>
+                    </Grow>
+                    <Grow in={progress && progress !== true}>
+                        <Box
+                            position="absolute"
+                            top={-5}
+                            left={-5}
+                            zIndex={1}
+                            width={58}
+                            height={58}
+                            sx={{ transform: "rotate(-90deg)" }}
+                        >
+                            <CircularProgress
+                                variant="determinate"
+                                value={
+                                    progress && progress !== true
+                                        ? Math.max(
+                                              Math.min(
+                                                  progress[1] === 0
+                                                      ? 0
+                                                      : progress[0] /
+                                                          progress[1],
+                                                  1,
+                                              ),
+                                              0,
+                                          ) * 100
+                                        : 90
+                                }
+                                size="100%"
+                                color="secondary"
+                                thickness={2}
+                            />
+                        </Box>
+                    </Grow>
+                </Fab>
+            </Box>
+            <Stack direction="column">
+                <Typography variant="h6" component="p" fontSize={16}>
+                    {element.name}
+                </Typography>
+                <Typography
+                    variant="body1"
+                    component="span"
+                    color="text.secondary"
+                    fontSize={12}
+                >
+                    {size}
+                </Typography>
+            </Stack>
+        </Stack>
+    );
+}
+
 function MessageItemElementFace({
     element,
     faceResourceDir,
@@ -278,7 +472,7 @@ function MessageItemElementFace({
     const file = useMemo(
         () =>
             element.faceType === "typcial-1"
-                ? `${faceResourceDir}/gif/s${element.faceId}.gif`
+                ? `${faceResourceDir}/static/s${element.faceId}.png`
                 : `${faceResourceDir}/apng/s${element.faceId}.png`,
         [faceResourceDir, element],
     );
@@ -515,6 +709,13 @@ function MessageItem({
                                     element={element}
                                     faceResourceDir={faceResourceDir}
                                     lottieResourceDir={lottieResourceDir}
+                                />
+                            );
+                        else if (element.type === "file")
+                            child = (
+                                <MessageItemElementFile
+                                    element={element}
+                                    message={message}
                                 />
                             );
                         else if (element.type === "raw")

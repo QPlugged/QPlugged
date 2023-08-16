@@ -2,6 +2,7 @@ import { filterEntities } from "./converter";
 import {
     decodeEntity,
     decodeFaceElement,
+    decodeFileElement,
     decodeImageElement,
     decodeMentionElement,
     decodeRawElement,
@@ -9,7 +10,7 @@ import {
     decodeTextElement,
 } from "./decoder";
 import { encodeGroup, encodeMessage, encodeUser } from "./encoder";
-import { MessagingMedia } from "./media";
+import { MessagingMediaImpl } from "./media";
 import EventEmitter from "eventemitter3";
 
 export class MessagingImpl
@@ -18,13 +19,13 @@ export class MessagingImpl
 {
     private nt: InternalApi;
     private business: InternalApi;
-    private media: MessagingMedia;
+    public media: MessagingMedia;
     constructor(api: InternalApis, fs: Filesystem) {
         super();
         const { nt, business } = api;
         this.nt = nt;
         this.business = business;
-        this.media = new MessagingMedia(api, fs);
+        this.media = new MessagingMediaImpl(api, fs);
         this.nt.on("nodeIKernelMsgListener/onRecvMsg", (payload: any) => {
             const messages = (payload?.msgList as any[])?.map((message) =>
                 encodeMessage(message, this.media),
@@ -129,16 +130,24 @@ export class MessagingImpl
                 peer: decodeEntity(entity),
                 msgElements: await Promise.all(
                     elements.map(async (element) => {
-                        return {
+                        return await {
                             reply: decodeReplyElement,
                             text: decodeTextElement,
                             mention: decodeMentionElement,
-                            image: (element: MessageSendableElementImage) =>
+                            image: async (
+                                element: MessageSendableElementImage,
+                            ) =>
                                 decodeImageElement(
-                                    this.media.prepareImageElement(
+                                    await this.media.prepareImageElement(
                                         element.file,
                                         element.imageType,
                                         element.imageSubType,
+                                    ),
+                                ),
+                            file: async (element: MessageSendableElementFile) =>
+                                decodeFileElement(
+                                    await this.media.prepareFileElement(
+                                        element.file,
                                     ),
                                 ),
                             face: decodeFaceElement,

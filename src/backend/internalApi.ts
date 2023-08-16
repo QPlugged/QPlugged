@@ -12,18 +12,21 @@ export class InternalApiImpl
     private initPromise: Promise<void>;
     constructor(endpoint: Endpoint, api: string, events: string[] = []) {
         super();
-        logger("注册 API: %s", api);
+        this.api = api;
+        logger("注册 API: %s", this.api);
         this.endpoint = endpoint;
         this.endpoint.on("event", (data) => {
-            if (data.api === api) this.emit(data.cmd, data.payload);
+            if (data.api === this.api) {
+                logger("%s.on(%o) -> %o", this.api, data.cmd, data.payload);
+                this.emit(data.cmd, data.payload);
+            }
         });
-        this.api = api;
+
         this.initPromise = Promise.all(
             events.map((event) => this.listen(event)),
         ).then(() => undefined);
     }
     async send(cmd: string, ...args: any[]): Promise<any> {
-        logger("%s.%s %o", this.api, cmd, args);
         await this.initPromise;
         const data: Endpoint.MessageWithoutId<Endpoint.Message.Call> = {
             type: "call",
@@ -31,7 +34,15 @@ export class InternalApiImpl
             cmd: cmd,
             args: args,
         };
-        return await this.endpoint.send(data);
+        const res = await this.endpoint.send(data);
+        logger(
+            `%s.%s(${new Array(args.length).fill("%o").join(", ")}) -> %o`,
+            this.api,
+            cmd.replaceAll("/", "."),
+            ...args,
+            res,
+        );
+        return res;
     }
     async listen(event?: string | undefined): Promise<void> {
         logger("register %s.%s", this.api, event);

@@ -54,6 +54,14 @@ export function decodeImageElement(data: any) {
     };
 }
 
+export function decodeFileElement(data: any) {
+    return {
+        elementType: 3,
+        elementId: "",
+        fileElement: data,
+    };
+}
+
 export function decodeFaceElement(element: MessageSendableElementFace) {
     return {
         elementType: 6,

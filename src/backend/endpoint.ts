@@ -25,7 +25,11 @@ export class WebSocketEndpointImpl
             const data = deserialize(
                 JSON.parse(event.data.toString()),
             ) as Endpoint.OutgoingMessage;
-            if (data.type === "log") qlogLogger("%o", data.raw);
+            if (data.type === "log")
+                qlogLogger(
+                    new Array(data.raw.length).fill("%o").join(" "),
+                    ...data.raw,
+                );
             else if (data.type === "response") {
                 const id = data.id;
                 if (this.pendingCalls[id]) {

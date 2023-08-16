@@ -34,7 +34,7 @@
                 {
                     "domain": "tauri.localhost",
                     "windows": ["main"],
-                    "plugins": ["shell"]
+                    "plugins": ["shell", "dialog"]
                 }
             ]
         },
