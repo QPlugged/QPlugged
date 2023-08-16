@@ -1,8 +1,16 @@
+use std::env;
+
+#[tauri::command]
+fn get_server_url() -> String {
+    return env::var("QP_CLIENT_URL").unwrap_or("".to_owned());
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_window::init())
         .plugin(tauri_plugin_shell::init())
+        .invoke_handler(tauri::generate_handler![get_server_url])
         .setup(|app| {
             let window = tauri::Manager::get_window(app, "main").ok_or("cannot get main window")?;
             #[cfg(desktop)]

@@ -3,7 +3,6 @@ import { InternalApi } from "./backend/api";
 import { FilesystemImpl } from "./backend/fs";
 import { LoginImpl } from "./backend/login";
 import { MessagingImpl } from "./backend/messaging";
-import IndexPage from "./pages/index/IndexPage";
 import LoginPage from "./pages/login/LoginPage";
 import { MainPage } from "./pages/main/MainPage";
 import {
@@ -18,6 +17,8 @@ import {
 import { zhCN } from "@mui/material/locale";
 import { useEffect, useMemo, useState } from "react";
 import { RouterProvider, createHashRouter } from "react-router-dom";
+import { tauri } from "@tauri-apps/api";
+import IndexPage from "./pages/IndexPage";
 
 declare module "@mui/material/styles" {
     interface MessageColor {
@@ -132,11 +133,8 @@ const theme = experimental_extendTheme(
 const router = createHashRouter([
     {
         path: "/",
+        element: <IndexPage />,
         children: [
-            {
-                index: true,
-                element: <IndexPage />,
-            },
             {
                 path: "login",
                 element: <LoginPage />,
@@ -151,14 +149,24 @@ const router = createHashRouter([
 
 function App() {
     const [internalApiState, setInternalApiState] = useState<
-        "connected" | "disconnected" | "connecting" | undefined
-    >();
+        | "connected"
+        | "disconnected"
+        | "connecting"
+        | "not-configured"
+        | "preparing"
+    >("preparing");
     const [internalApiError, setInternalApiError] =
         useState<[number, string]>();
     const [internalApi, setInternalApi] = useState<InternalApi | undefined>();
 
     useEffect(() => {
-        setInternalApi(new InternalApi("ws://127.0.0.1:15321"));
+        (async () => {
+            setInternalApiState("preparing");
+            const url = await tauri.invoke<string>("get_server_url");
+            console.log(`[frontend/App] 正在尝试连接 ${url}`);
+            if (url) setInternalApi(new InternalApi(url));
+            else setInternalApiState("not-configured");
+        })();
     }, []);
 
     useEffect(() => {
@@ -172,7 +180,7 @@ function App() {
                     : internalApi?.readyState === internalApi?.CLOSING ||
                       internalApi?.readyState === internalApi?.CLOSED
                     ? "disconnected"
-                    : undefined,
+                    : "disconnected",
             );
         };
         listener();
@@ -220,23 +228,24 @@ function App() {
                         width="100%"
                         height="100%"
                     >
-                        {!internalApi || internalApiState === "connecting" ? (
+                        {internalApiState === "connecting" ||
+                        internalApiState === "preparing" ? (
                             <CircularProgress />
-                        ) : (
-                            <Alert severity="warning">
-                                {internalApiState === "disconnected"
-                                    ? `已意外与 API 端点断开连接。${
-                                          internalApiError?.[0]
-                                              ? `错误代码：${internalApiError?.[0]}`
-                                              : ""
-                                      }${
-                                          internalApiError?.[1]
-                                              ? ` 详细信息${internalApiError?.[1]}`
-                                              : ""
-                                      }。`
-                                    : "未配置 API 端点。"}
+                        ) : internalApiState === "disconnected" ? (
+                            <Alert severity="error">
+                                {`已意外与 API 端点断开连接。${
+                                    internalApiError?.[0]
+                                        ? `错误代码：${internalApiError?.[0]}`
+                                        : ""
+                                }${
+                                    internalApiError?.[1]
+                                        ? ` 详细信息${internalApiError?.[1]}`
+                                        : ""
+                                }。`}
                             </Alert>
-                        )}
+                        ) : internalApiState === "not-configured" ? (
+                            <Alert severity="info">未配置 API 端点。</Alert>
+                        ) : null}
                     </Stack>
                 )}
             </Box>
