@@ -165,7 +165,6 @@ function App() {
         (async () => {
             setEndpointState("preparing");
             const url = await tauri.invoke<string>("get_server_url");
-            console.log(`[frontend/App] 正在尝试连接 ${url}`);
             if (url) {
                 const endpoint = new WebSocketEndpointImpl(url);
                 setInternalApis(new InternalApisImpl(endpoint));
@@ -186,7 +185,7 @@ function App() {
                           [endpoint.OPEN]: "connected" as const,
                           [endpoint.CLOSING]: "disconnected" as const,
                       }[endpoint.readyState] || ("disconnected" as const)
-                    : "disconnected",
+                    : "preparing",
             );
         };
         listener();

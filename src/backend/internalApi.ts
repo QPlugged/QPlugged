@@ -1,13 +1,18 @@
+import debug from "debug";
 import EventEmitter from "eventemitter3";
 
-export class InternalApiImpl extends EventEmitter<
-    InternalApi.Events
-> implements InternalApi {
+const logger = debug("internal-api");
+
+export class InternalApiImpl
+    extends EventEmitter<InternalApi.Events>
+    implements InternalApi
+{
     private endpoint: Endpoint;
     private api: string;
     private initPromise: Promise<void>;
     constructor(endpoint: Endpoint, api: string, events: string[] = []) {
         super();
+        logger("注册 API: %s", api);
         this.endpoint = endpoint;
         this.endpoint.on("event", (data) => {
             if (data.api === api) this.emit(data.cmd, data.payload);
@@ -17,7 +22,8 @@ export class InternalApiImpl extends EventEmitter<
             events.map((event) => this.listen(event)),
         ).then(() => undefined);
     }
-     async send(cmd: string, ...args: any[]):Promise<any> {
+    async send(cmd: string, ...args: any[]): Promise<any> {
+        logger("%s.%s %o", this.api, cmd, args);
         await this.initPromise;
         const data: Endpoint.MessageWithoutId<Endpoint.Message.Call> = {
             type: "call",
@@ -27,18 +33,19 @@ export class InternalApiImpl extends EventEmitter<
         };
         return await this.endpoint.send(data);
     }
-     async listen(event?: string | undefined):Promise<void> {
+    async listen(event?: string | undefined): Promise<void> {
+        logger("register %s.%s", this.api, event);
         const data: Endpoint.MessageWithoutId<Endpoint.Message.Call> = {
             type: "call",
             api: `${this.api}-register`,
             cmd: event,
             args: [],
         };
-         await this.endpoint.send(data);
+        await this.endpoint.send(data);
     }
 }
 
-export class InternalApisImpl implements InternalApis  {
+export class InternalApisImpl implements InternalApis {
     public business: InternalApi;
     public nt: InternalApi;
     public fs: InternalApi;

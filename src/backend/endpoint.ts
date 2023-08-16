@@ -3,7 +3,8 @@ import debug from "debug";
 import EventEmitter from "eventemitter3";
 import { nanoid } from "nanoid";
 
-const qlog = debug("qlog");
+const logger = debug("endpoint");
+const qlogLogger = debug("endpoint-qlog");
 
 export class WebSocketEndpointImpl
     extends EventEmitter<Endpoint.Events>
@@ -18,12 +19,13 @@ export class WebSocketEndpointImpl
     constructor(url: string) {
         super();
         this.connection = new WebSocket(url);
+        logger("正在连接 %s", url);
         this.connection.binaryType = "blob";
         this.connection.addEventListener("message", (event) => {
             const data = deserialize(
                 JSON.parse(event.data.toString()),
             ) as Endpoint.OutgoingMessage;
-            if (data.type === "log") qlog("%o", data.raw);
+            if (data.type === "log") qlogLogger("%o", data.raw);
             else if (data.type === "response") {
                 const id = data.id;
                 if (this.pendingCalls[id]) {
