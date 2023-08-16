@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define AppName "QPlugged"
-#define AppVersion "0.2.0"
+#define AppVersion "0.3.0"
 #define AppPublisher "The QPlugged Authors"
 #define AppCopyright "Copyright (c) 2023 The QPlugged Authors."
 #define AppExeName "QPlugged.exe"
