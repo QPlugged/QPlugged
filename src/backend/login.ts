@@ -1,12 +1,11 @@
-import { InternalApi } from "./api";
-import { WSApi } from "./ws";
-
 export class LoginImpl implements Login {
-    private nt: WSApi;
-    private business: WSApi;
-    constructor({ nt, business }: InternalApi) {
+    private nt: InternalApi;
+    private business: InternalApi;
+    private endpoint:Endpoint;
+    constructor({ nt, business ,endpoint}: InternalApis) {
         this.nt = nt;
         this.business = business;
+        this.endpoint=endpoint;
     }
     async getAccountList(): Promise<LoginAccount[]> {
         const ret = await this.nt.send(
@@ -63,7 +62,7 @@ export class LoginImpl implements Login {
         return this.parseLoginError(ret);
     }
     showLoginWindow(): Promise<void> {
-        return this.nt.up({
+        return this.endpoint.send({
             type: "show-login-window",
         });
     }

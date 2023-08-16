@@ -1,5 +1,3 @@
-import { InternalApi } from "../api";
-import { WSApi } from "../ws";
 import { filterEntities } from "./converter";
 import {
     decodeEntity,
@@ -18,10 +16,10 @@ export class MessagingImpl
     extends EventEmitter<MessagingEvents>
     implements Messaging
 {
-    private nt: WSApi;
-    private business: WSApi;
+    private nt: InternalApi;
+    private business: InternalApi;
     private media: MessagingMedia;
-    constructor(api: InternalApi, fs: Filesystem) {
+    constructor(api: InternalApis, fs: Filesystem) {
         super();
         const { nt, business } = api;
         this.nt = nt;

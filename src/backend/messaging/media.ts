@@ -1,17 +1,15 @@
-import { InternalApi } from "../api";
-import { WSApi } from "../ws";
 import { decodeEntity } from "./decoder";
 
 export class MessagingMedia {
-    private nt: WSApi;
+    private nt: InternalApi;
     private fs: Filesystem;
     private pendingDownloads: Record<string, (payload: any) => void> = {};
-    constructor({ nt }: InternalApi, fs: Filesystem) {
+    constructor({ nt }: InternalApis, fs: Filesystem) {
         this.nt = nt;
         this.fs = fs;
         this.nt.on(
             "nodeIKernelMsgListener/onRichMediaDownloadComplete",
-            (payload) => {
+            (payload:any) => {
                 if (this.pendingDownloads[payload?.notifyInfo?.msgElementId]) {
                     this.pendingDownloads[payload.notifyInfo.msgElementId](
                         payload,

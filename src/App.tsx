@@ -1,5 +1,4 @@
 import { Api, ApiContext } from "./Api";
-import { InternalApi } from "./backend/api";
 import { FilesystemImpl } from "./backend/fs";
 import { LoginImpl } from "./backend/login";
 import { MessagingImpl } from "./backend/messaging";
@@ -19,6 +18,8 @@ import { useEffect, useMemo, useState } from "react";
 import { RouterProvider, createHashRouter } from "react-router-dom";
 import { tauri } from "@tauri-apps/api";
 import IndexPage from "./pages/IndexPage";
+import { WebSocketEndpointImpl } from "./backend/endpoint";
+import { InternalApisImpl } from "./backend/internalApi";
 
 declare module "@mui/material/styles" {
     interface MessageColor {
@@ -148,76 +149,77 @@ const router = createHashRouter([
 ]);
 
 function App() {
-    const [internalApiState, setInternalApiState] = useState<
+    const [endpointState, setEndpointState] = useState<
         | "connected"
         | "disconnected"
         | "connecting"
         | "not-configured"
         | "preparing"
     >("preparing");
-    const [internalApiError, setInternalApiError] =
-        useState<[number, string]>();
-    const [internalApi, setInternalApi] = useState<InternalApi | undefined>();
+    const [endpointError, setEndpointError] = useState<[number, string]>();
+    const [internalApis, setInternalApis] = useState<
+        InternalApis | undefined
+    >();
 
     useEffect(() => {
         (async () => {
-            setInternalApiState("preparing");
+            setEndpointState("preparing");
             const url = await tauri.invoke<string>("get_server_url");
             console.log(`[frontend/App] 正在尝试连接 ${url}`);
-            if (url) setInternalApi(new InternalApi(url));
-            else setInternalApiState("not-configured");
+            if (url) {
+                const endpoint = new WebSocketEndpointImpl(url);
+                setInternalApis(new InternalApisImpl(endpoint));
+            } else setEndpointState("not-configured");
         })();
     }, []);
 
     useEffect(() => {
-        const listener = (event?: CloseEvent) => {
-            if (event?.code) setInternalApiError([event?.code, event?.reason]);
-            setInternalApiState(
-                internalApi?.readyState === internalApi?.CONNECTING
-                    ? "connecting"
-                    : internalApi?.readyState === internalApi?.OPEN
-                    ? "connected"
-                    : internalApi?.readyState === internalApi?.CLOSING ||
-                      internalApi?.readyState === internalApi?.CLOSED
-                    ? "disconnected"
+        const endpoint = (
+            internalApis?.endpoint as WebSocketEndpointImpl | undefined
+        )?.connection;
+        const listener = (event?: any) => {
+            if (event?.code) setEndpointError([event?.code, event?.reason]);
+            setEndpointState(
+                endpoint
+                    ? {
+                          [endpoint.CONNECTING]: "connecting" as const,
+                          [endpoint.OPEN]: "connected" as const,
+                          [endpoint.CLOSING]: "disconnected" as const,
+                      }[endpoint.readyState] || ("disconnected" as const)
                     : "disconnected",
             );
         };
         listener();
-        if (internalApi) {
-            // @ts-expect-error
-            internalApi.addEventListener("open", listener);
-            // @ts-expect-error
-            internalApi.addEventListener("error", listener);
-            internalApi.addEventListener("close", listener);
+        if (endpoint) {
+            endpoint.addEventListener("open", listener);
+            endpoint.addEventListener("error", listener);
+            endpoint.addEventListener("close", listener);
             return () => {
-                // @ts-expect-error
-                internalApi.removeEventListener("open", listener);
-                // @ts-expect-error
-                internalApi.removeEventListener("error", listener);
-                internalApi.removeEventListener("close", listener);
+                endpoint.removeEventListener("open", listener);
+                endpoint.removeEventListener("error", listener);
+                endpoint.removeEventListener("close", listener);
             };
         }
-    }, [internalApi]);
+    }, [internalApis]);
 
     const api = useMemo((): Api | undefined => {
-        if (internalApiState === "connected" && internalApi) {
-            const login = new LoginImpl(internalApi);
-            const fs = new FilesystemImpl(internalApi);
-            const messaging = new MessagingImpl(internalApi, fs);
+        if (endpointState === "connected" && internalApis) {
+            const login = new LoginImpl(internalApis);
+            const fs = new FilesystemImpl(internalApis);
+            const messaging = new MessagingImpl(internalApis, fs);
             return {
                 login,
                 fs,
                 messaging,
             };
         }
-    }, [internalApiState]);
+    }, [endpointState, internalApis]);
 
     return (
         <Experimental_CssVarsProvider theme={theme} defaultMode="system">
             <CssBaseline enableColorScheme />
             <Box sx={{ position: "fixed", inset: 0 }}>
-                {internalApiState === "connected" ? (
+                {endpointState === "connected" ? (
                     <ApiContext.Provider value={api!}>
                         <RouterProvider router={router} />
                     </ApiContext.Provider>
@@ -228,22 +230,22 @@ function App() {
                         width="100%"
                         height="100%"
                     >
-                        {internalApiState === "connecting" ||
-                        internalApiState === "preparing" ? (
+                        {endpointState === "connecting" ||
+                        endpointState === "preparing" ? (
                             <CircularProgress />
-                        ) : internalApiState === "disconnected" ? (
+                        ) : endpointState === "disconnected" ? (
                             <Alert severity="error">
                                 {`已意外与 API 端点断开连接。${
-                                    internalApiError?.[0]
-                                        ? `错误代码：${internalApiError?.[0]}`
+                                    endpointError?.[0]
+                                        ? `错误代码：${endpointError?.[0]}`
                                         : ""
                                 }${
-                                    internalApiError?.[1]
-                                        ? ` 详细信息${internalApiError?.[1]}`
+                                    endpointError?.[1]
+                                        ? ` 详细信息${endpointError?.[1]}`
                                         : ""
                                 }。`}
                             </Alert>
-                        ) : internalApiState === "not-configured" ? (
+                        ) : endpointState === "not-configured" ? (
                             <Alert severity="info">未配置 API 端点。</Alert>
                         ) : null}
                     </Stack>

@@ -1,9 +1,8 @@
-import { InternalApi } from "./api";
-import { WSApi } from "./ws";
+
 
 export class FilesystemImpl implements Filesystem {
-    private fs: WSApi;
-    constructor({ fs }: InternalApi) {
+    private fs: InternalApi;
+    constructor({fs}:InternalApis) {
         this.fs = fs;
     }
     getFileMD5Hash(path: string): Promise<string> {
