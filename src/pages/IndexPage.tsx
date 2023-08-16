@@ -1,7 +1,7 @@
+import { ApiContext } from "../Api";
 import { CircularProgress, Stack } from "@mui/material";
 import { useContext, useEffect, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { ApiContext } from "../Api";
 
 export default function IndexPage() {
     const api = useContext(ApiContext);

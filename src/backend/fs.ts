@@ -1,8 +1,6 @@
-
-
 export class FilesystemImpl implements Filesystem {
     private fs: InternalApi;
-    constructor({fs}:InternalApis) {
+    constructor({ fs }: InternalApis) {
         this.fs = fs;
     }
     getFileMD5Hash(path: string): Promise<string> {

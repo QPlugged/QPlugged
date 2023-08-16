@@ -1,11 +1,11 @@
 export class LoginImpl implements Login {
     private nt: InternalApi;
     private business: InternalApi;
-    private endpoint:Endpoint;
-    constructor({ nt, business ,endpoint}: InternalApis) {
+    private endpoint: Endpoint;
+    constructor({ nt, business, endpoint }: InternalApis) {
         this.nt = nt;
         this.business = business;
-        this.endpoint=endpoint;
+        this.endpoint = endpoint;
     }
     async getAccountList(): Promise<LoginAccount[]> {
         const ret = await this.nt.send(

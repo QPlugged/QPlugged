@@ -5,9 +5,8 @@ interface Endpoint extends Endpoint.EventEmitter {
 }
 
 interface WebSocketEndpoint extends Endpoint {
-    connection:WebSocket;
+    connection: WebSocket;
 }
-
 
 declare namespace Endpoint {
     type EventEmitter = import("eventemitter3").EventEmitter<Events>;

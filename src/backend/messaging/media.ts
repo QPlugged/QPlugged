@@ -9,7 +9,7 @@ export class MessagingMedia {
         this.fs = fs;
         this.nt.on(
             "nodeIKernelMsgListener/onRichMediaDownloadComplete",
-            (payload:any) => {
+            (payload: any) => {
                 if (this.pendingDownloads[payload?.notifyInfo?.msgElementId]) {
                     this.pendingDownloads[payload.notifyInfo.msgElementId](
                         payload,

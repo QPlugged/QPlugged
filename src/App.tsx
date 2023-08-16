@@ -1,7 +1,10 @@
 import { Api, ApiContext } from "./Api";
+import { WebSocketEndpointImpl } from "./backend/endpoint";
 import { FilesystemImpl } from "./backend/fs";
+import { InternalApisImpl } from "./backend/internalApi";
 import { LoginImpl } from "./backend/login";
 import { MessagingImpl } from "./backend/messaging";
+import IndexPage from "./pages/IndexPage";
 import LoginPage from "./pages/login/LoginPage";
 import { MainPage } from "./pages/main/MainPage";
 import {
@@ -14,12 +17,9 @@ import {
     experimental_extendTheme,
 } from "@mui/material";
 import { zhCN } from "@mui/material/locale";
+import { tauri } from "@tauri-apps/api";
 import { useEffect, useMemo, useState } from "react";
 import { RouterProvider, createHashRouter } from "react-router-dom";
-import { tauri } from "@tauri-apps/api";
-import IndexPage from "./pages/IndexPage";
-import { WebSocketEndpointImpl } from "./backend/endpoint";
-import { InternalApisImpl } from "./backend/internalApi";
 
 declare module "@mui/material/styles" {
     interface MessageColor {
