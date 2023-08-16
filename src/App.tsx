@@ -141,7 +141,7 @@ const router = createHashRouter([
                 element: <LoginPage />,
             },
             {
-                path: "main",
+                index: true,
                 element: <MainPage />,
             },
         ],
