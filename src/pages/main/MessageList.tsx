@@ -552,7 +552,7 @@ export default function MessageList({ entity }: { entity: Entity }) {
     const [messages, setMessages] = useState<Map<string, Message>>(new Map());
     const [messagesId, setMessagesId] = useState<string[]>([]);
     const [highlightedMessageId, setHighlightedMessageId] = useState<string>();
-    const [avatars, setAvatars] = useState<Record<string, string>>({});
+    const [avatars, setAvatars] = useState<Map<string, string>>(new Map());
     const [atTop, setAtTop] = useState<boolean>(false);
     const [atBottom, setAtBottom] = useState<boolean>(true);
     const [loading, setLoading] = useState<boolean>(true);
@@ -698,18 +698,20 @@ export default function MessageList({ entity }: { entity: Entity }) {
             (async () => {
                 const entities = [...messages]
                     .filter(([_, message]) => {
-                        return !oldAvatars[message.sender.uid];
+                        return !oldAvatars.get(message.sender.uid);
                     })
                     .map(([_, message]) => ({
                         type: "user" as const,
                         uid: message.sender.uid,
                     }));
                 const avatarsMap = await api.messaging.getAvatars(entities);
-                for (const [entity, avatar] of avatarsMap)
-                    setAvatars((oldAvatars) => ({
-                        ...oldAvatars,
-                        [entity.uid]: avatar,
-                    }));
+                setAvatars((oldAvatars) => {
+                    let map = oldAvatars;
+                    for (const [{ uid }, avatar] of avatarsMap) {
+                        map = map.set(uid, avatar);
+                    }
+                    return new Map(map);
+                });
             })();
             return oldAvatars;
         });
@@ -717,37 +719,35 @@ export default function MessageList({ entity }: { entity: Entity }) {
 
     useEffect(() => {
         const listener = (messages: Message[]) => {
-            const moreMessages = messages.filter(
-                (message) =>
-                    equal(message.entity, entity) &&
-                    !messagesId.includes(message.id),
-            );
-            setFirstItemIndex(
-                (oldFirstItemIndex) => oldFirstItemIndex - moreMessages.length,
-            );
             setMessages((oldMessages) => {
+                const moreMessages = messages.filter(
+                    (message) =>
+                        equal(message.entity, entity) &&
+                        !oldMessages.has(message.id),
+                );
                 let map = oldMessages;
                 for (const message of moreMessages) {
                     map = map.set(message.id, message);
                 }
+                setMessagesId((oldMessagesId) => [
+                    ...oldMessagesId,
+                    ...moreMessages.map((message) => message.id),
+                ]);
                 return new Map(map);
             });
-            setMessagesId((oldMessagesId) => [
-                ...oldMessagesId,
-                ...moreMessages.map((message) => message.id),
-            ]);
-            if (atBottom) scrollToBottom();
+
+            setTimeout(() => scrollToBottom(), 0);
         };
         api.messaging.on("new-messages", listener);
         return () => {
             api.messaging.off("new-messages", listener);
         };
-    }, [api, entity, messagesId, atBottom, scrollToBottom]);
+    }, [api, entity, atBottom, scrollToBottom]);
 
     useEffect(() => {
         setMessages(new Map());
         setMessagesId([]);
-        setAvatars({});
+        setAvatars(new Map());
         setAtTop(false);
         setAtBottom(true);
         setFirstItemIndex(START_INDEX);
@@ -780,25 +780,33 @@ export default function MessageList({ entity }: { entity: Entity }) {
                             const message = messages.get(id)!;
 
                             return (
-                                <MessageItem
-                                    lastMessage={messages.get(
-                                        messagesId[messagesId.indexOf(id) - 1],
-                                    )}
-                                    message={message}
-                                    nextMessage={messages.get(
-                                        messagesId[messagesId.indexOf(id) + 1],
-                                    )}
-                                    highlighted={
-                                        highlightedMessageId === message.id
-                                    }
-                                    entity={entity}
-                                    avatar={avatars[message.sender.uid]}
-                                    loggedInAccount={authData!}
-                                    faceResourceDir={faceResourceDir!}
-                                    lottieResourceDir={lottieResourceDir!}
-                                    jumpToMessage={jumpToMessage}
-                                    showProfile={() => undefined}
-                                />
+                                message && (
+                                    <MessageItem
+                                        lastMessage={messages.get(
+                                            messagesId[
+                                                messagesId.indexOf(id) - 1
+                                            ],
+                                        )}
+                                        message={message}
+                                        nextMessage={messages.get(
+                                            messagesId[
+                                                messagesId.indexOf(id) + 1
+                                            ],
+                                        )}
+                                        highlighted={
+                                            highlightedMessageId === id
+                                        }
+                                        entity={entity}
+                                        avatar={
+                                            avatars.get(message.sender.uid)!
+                                        }
+                                        loggedInAccount={authData!}
+                                        faceResourceDir={faceResourceDir!}
+                                        lottieResourceDir={lottieResourceDir!}
+                                        jumpToMessage={jumpToMessage}
+                                        showProfile={() => undefined}
+                                    />
+                                )
                             );
                         }}
                     />
