@@ -14,7 +14,7 @@ export default function IndexPage() {
             setLoading(false);
             const isInLoginPage = location.pathname.startsWith("/login");
             if (!account && !isInLoginPage) navigate("/login");
-            else if (account && isInLoginPage) navigate("/main");
+            else if (account && isInLoginPage) navigate("/");
         });
     }, [api, location, navigate]);
 
