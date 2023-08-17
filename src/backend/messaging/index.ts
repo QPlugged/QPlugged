@@ -260,12 +260,9 @@ export class MessagingImpl
                 "nodeIKernelBuddyListener/onBuddyListChange",
                 (payload) => {
                     resolve(
-                        ([] as User[]).concat(
-                            ...((payload?.data || []) as any[]).map(
-                                (category) =>
-                                    ((category?.buddyList || []) as any[]).map(
-                                        (friend) => encodeUser(friend),
-                                    ),
+                        ((payload?.data || []) as any[]).flatMap((category) =>
+                            ((category?.buddyList || []) as any[]).map(
+                                (friend) => encodeUser(friend),
                             ),
                         ),
                     );

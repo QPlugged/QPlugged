@@ -220,9 +220,19 @@ function MessageItemElementMention({
     );
 
     return (
-        <Link component="button" underline="hover" onClick={onClick}>
-            {element.content}
-        </Link>
+        <>
+            <Link
+                component="button"
+                underline="hover"
+                paddingLeft={""}
+                paddingRight={1}
+                onClick={onClick}
+                sx={{ verticalAlign: "inherit" }}
+            >
+                {element.content}
+            </Link>
+            &nbsp;
+        </>
     );
 }
 
