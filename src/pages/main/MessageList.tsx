@@ -361,6 +361,7 @@ function MessageItemElementFile({
                 oldDownloadQueue.delete(element.id);
                 return new Map(oldDownloadQueue);
             });
+            updateDownloadedState();
         };
         api.messaging.media.on("download-finish", listener);
         return () => {
