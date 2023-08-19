@@ -1,7 +1,7 @@
 {
     "name": "qplugged",
     "private": true,
-    "packageManager": "yarn@3.6.1",
+    "packageManager": "yarn@3.6.2",
     "version": "0.3.0",
     "type": "module",
     "scripts": {
@@ -27,6 +27,8 @@
         "@ckeditor/ckeditor5-paragraph": "^39.0.1",
         "@ckeditor/ckeditor5-react": "^6.1.0",
         "@ckeditor/ckeditor5-theme-lark": "^39.0.1",
+        "@ckeditor/ckeditor5-utils": "^39.0.1",
+        "@ckeditor/ckeditor5-watchdog": "^39.0.1",
         "@emotion/react": "^11.11.1",
         "@emotion/styled": "^11.11.0",
         "@mui/icons-material": "^5.14.3",
@@ -51,9 +53,9 @@
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
         "react-hotkeys-hook": "^4.4.1",
-        "react-router-dom": "^6.14.2",
+        "react-router-dom": "^6.15.0",
         "react-scrollbars-custom": "^4.1.1",
-        "react-virtuoso": "^4.4.2",
+        "react-virtuoso": "^4.5.0",
         "ws": "^8.13.0"
     },
     "devDependencies": {
@@ -70,12 +72,12 @@
         "@yarnpkg/sdks": "^3.0.0-rc.48",
         "compressing": "^1.9.1",
         "innosetup-compiler": "^6.2.0",
-        "internal-ip": "^7.0.0",
+        "internal-ip": "^8.0.0",
         "javascript-obfuscator": "^4.0.2",
         "jotai": "^2.3.1",
         "rome": "^12.1.3",
         "typescript": "^5.1.6",
-        "vite": "^4.4.4",
+        "vite": "^4.4.9",
         "vite-plugin-javascript-obfuscator": "^3.0.3"
     }
 }

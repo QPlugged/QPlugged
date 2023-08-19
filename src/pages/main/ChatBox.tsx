@@ -144,7 +144,6 @@ export default function ChatBox({
                     0,
                     lastElement.content.length - 1,
                 );
-            console.log(elements);
             await api.messaging.sendMessage(entity, elements);
             scrollToBottom();
         },
