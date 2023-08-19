@@ -36,7 +36,7 @@ export class InternalApiImpl
         };
         const res = await this.endpoint.send(data);
         logger(
-            `%s.%s(${new Array(args.length).fill("%o").join(", ")}) -> %o`,
+            `res %s.%s(${new Array(args.length).fill("%o").join(", ")}) -> %o`,
             this.api,
             cmd.replaceAll("/", "."),
             ...args,
@@ -45,10 +45,20 @@ export class InternalApiImpl
         return res;
     }
     async listen(event?: string | undefined): Promise<void> {
-        logger("register %s.%s", this.api, event);
+        logger("注册监听器 %s.%s", this.api, event);
         const data: Endpoint.MessageWithoutId<Endpoint.Message.Call> = {
             type: "call",
             api: `${this.api}-register`,
+            cmd: event,
+            args: [],
+        };
+        await this.endpoint.send(data);
+    }
+    async unlisten(event?: string | undefined): Promise<void> {
+        logger("注销监听器 %s.%s", this.api, event);
+        const data: Endpoint.MessageWithoutId<Endpoint.Message.Call> = {
+            type: "call",
+            api: `${this.api}-unregister`,
             cmd: event,
             args: [],
         };
@@ -66,6 +76,12 @@ export class InternalApisImpl implements InternalApis {
         this.business = new InternalApiImpl(this.endpoint, "BusinessApi");
         this.nt = new InternalApiImpl(this.endpoint, "ntApi", [
             "nodeIKernelMsgListener/onRichMediaDownloadComplete",
+            "nodeIKernelBuddyListener/onBuddyListChange",
+            "nodeIKernelGroupListener/onGroupListUpdate",
+            "nodeIKernelGroupListener/onSearchMemberChange",
+            "nodeIKernelGroupListener/onGroupDetailInfoChange",
+            "nodeIKernelGroupListener/onGroupBulletinChange",
+            "nodeIKernelGroupListener/onMemberListChange",
         ]);
         this.fs = new InternalApiImpl(this.endpoint, "fsApi");
     }

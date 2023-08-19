@@ -1,7 +1,10 @@
+import ckeditor5 from "@ckeditor/vite-plugin-ckeditor5";
 import react from "@vitejs/plugin-react";
 import { internalIpV4 } from "internal-ip";
+import { createRequire } from "module";
 import { defineConfig } from "vite";
 import obfuscatorPlugin from "vite-plugin-javascript-obfuscator";
+const require = createRequire(import.meta.url);
 
 const mobile = !!/android|ios/.exec(process.env.TAURI_PLATFORM);
 
@@ -9,7 +12,7 @@ const mobile = !!/android|ios/.exec(process.env.TAURI_PLATFORM);
 export default defineConfig(async (env) => ({
     plugins: [
         react(),
-
+        ckeditor5({ theme: require.resolve("@ckeditor/ckeditor5-theme-lark") }),
         env.mode === "production" &&
             obfuscatorPlugin({
                 options: {

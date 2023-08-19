@@ -49,8 +49,14 @@ export function encodeMentionElement(
     return {
         type: "mention",
         id: ele.elementId,
+        mentionType:
+            { 2: "user", 1: "everyone" }[ele.textElement.atType as number] ||
+            ele.textElement.atType,
         content: ele.textElement.content,
-        uid: ele.textElement.atNtUid,
+        uid:
+            ele.textElement.atType === "1"
+                ? undefined
+                : ele.textElement.atNtUid,
         raw: ele,
     };
 }
@@ -184,7 +190,8 @@ export function encodeUser(raw: any): User {
         uid: raw.uid,
         uin: raw.uin,
         qid: raw.qid,
-        avatar: raw.avatarUrl,
+        avatarUrl: raw.avatarUrl,
+        avatarFile: raw.avatarPath,
         name: raw.nick,
         bio: raw.longNick,
         sex:

@@ -13,6 +13,20 @@
         "format": "rome format . --write"
     },
     "dependencies": {
+        "@ckeditor/ckeditor5-autoformat": "^39.0.1",
+        "@ckeditor/ckeditor5-basic-styles": "^39.0.1",
+        "@ckeditor/ckeditor5-core": "^39.0.1",
+        "@ckeditor/ckeditor5-editor-balloon": "^39.0.1",
+        "@ckeditor/ckeditor5-engine": "^39.0.1",
+        "@ckeditor/ckeditor5-essentials": "^39.0.1",
+        "@ckeditor/ckeditor5-heading": "^39.0.1",
+        "@ckeditor/ckeditor5-link": "^39.0.1",
+        "@ckeditor/ckeditor5-list": "^39.0.1",
+        "@ckeditor/ckeditor5-markdown-gfm": "^39.0.1",
+        "@ckeditor/ckeditor5-mention": "^39.0.1",
+        "@ckeditor/ckeditor5-paragraph": "^39.0.1",
+        "@ckeditor/ckeditor5-react": "^6.1.0",
+        "@ckeditor/ckeditor5-theme-lark": "^39.0.1",
         "@emotion/react": "^11.11.1",
         "@emotion/styled": "^11.11.0",
         "@mui/icons-material": "^5.14.3",
@@ -39,11 +53,11 @@
         "react-hotkeys-hook": "^4.4.1",
         "react-router-dom": "^6.14.2",
         "react-scrollbars-custom": "^4.1.1",
-        "react-textarea-autosize": "^8.5.2",
         "react-virtuoso": "^4.4.2",
         "ws": "^8.13.0"
     },
     "devDependencies": {
+        "@ckeditor/vite-plugin-ckeditor5": "^0.1.3",
         "@tauri-apps/cli": "^2.0.0-alpha.11",
         "@types/debug": "^4.1.8",
         "@types/markdown-it": "^13.0.0",

@@ -52,6 +52,7 @@ export default function RemoteFixedSizeImage({
             setImageObjectURL(objectURL);
         })().catch(() => {
             setFailed(true);
+            setLoaded(true);
         });
     }, [file, url, api, imageObjectURL]);
 

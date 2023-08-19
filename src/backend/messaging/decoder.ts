@@ -33,15 +33,18 @@ export function decodeTextElement(element: MessageSendableElementText) {
 }
 
 export function decodeMentionElement(element: MessageSendableElementMention) {
+    const uid = element.mentionType === "everyone" ? "all" : element.uid;
     return {
         elementType: 1,
         elementId: "",
         textElement: {
             content: element.content,
-            atType: 0,
-            atUid: "",
+            atType:
+                { user: 2, everyone: 1 }[element.mentionType] ||
+                element.mentionType,
+            atUid: uid,
             atTinyId: "",
-            atNtUid: element.uid,
+            atNtUid: uid,
         },
     };
 }

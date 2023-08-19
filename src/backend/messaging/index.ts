@@ -19,6 +19,9 @@ export class MessagingImpl
 {
     private nt: InternalApi;
     private business: InternalApi;
+    private scene: string | undefined;
+    private switchScenePromise: Promise<string> | undefined;
+    private entity: Entity | undefined;
     public media: MessagingMedia;
     constructor(api: InternalApis, fs: Filesystem) {
         super();
@@ -271,6 +274,18 @@ export class MessagingImpl
         );
     }
 
+    async getMemberInfo(groupUid: string, memberUids: string[]): Promise<void> {
+        this.nt.send(
+            "nodeIKernelGroupService/getMemberInfo",
+            {
+                forceUpdate: false,
+                groupCode: groupUid,
+                uids: memberUids,
+            },
+            undefined,
+        );
+    }
+
     async getGroupsList(forced: boolean): Promise<Group[]> {
         this.nt.send(
             "nodeIKernelGroupService/getGroupList",
@@ -284,6 +299,93 @@ export class MessagingImpl
                     resolve(
                         ((payload?.groupList || []) as any[]).map((group) =>
                             encodeGroup(group),
+                        ),
+                    );
+                },
+            ),
+        );
+    }
+
+    async getGroupMentionEveryoneConfig(
+        uid: string,
+    ): Promise<GroupMentionEveryoneConfig> {
+        const res = await this.nt.send(
+            "nodeIKernelGroupService/getGroupRemainAtTimes",
+            { groupCode: uid },
+            undefined,
+        );
+        const group = await this.getGroupInfo(uid);
+        return {
+            hasPermission:
+                res.atInfo.canAtAll &&
+                (group.role === "master" || group.role === "moderator"),
+            remainTimes: res.atInfo.RemainAtAllCountForUin,
+        };
+    }
+
+    async switchToEntity(entity: Entity): Promise<string> {
+        this.switchScenePromise = (async () => {
+            if (this.switchScenePromise) await this.switchScenePromise;
+            if (this.scene) {
+                await this.nt.send(
+                    "nodeIKernelGroupService/destroyMemberListScene",
+                    {
+                        sceneId: this.scene,
+                    },
+                    undefined,
+                );
+            }
+            const scene =
+                entity.type === "group"
+                    ? await this.nt.send(
+                          "nodeIKernelGroupService/createMemberListScene",
+                          {
+                              groupCode: entity.uid,
+                              scene: "groupMemberList_MainWindow",
+                          },
+                          undefined,
+                      )
+                    : undefined;
+
+            this.entity = entity;
+            this.scene = scene;
+            return scene;
+        })();
+        return this.switchScenePromise;
+    }
+
+    async searchMemberList(keyword: string): Promise<Map<string, User>> {
+        if (
+            !this.switchScenePromise ||
+            !this.entity ||
+            this.entity.type !== "group"
+        )
+            throw new Error("当前不处在任一群组对话中");
+        await this.switchScenePromise;
+
+        const group = await this.getGroupInfo(this.entity?.uid);
+        await this.nt.send("nodeIKernelGroupService/getNextMemberList", {
+            num: group.memberCount,
+            sceneId: this.scene,
+        });
+        this.nt.send(
+            "nodeIKernelGroupService/searchMember",
+            {
+                keyword: keyword,
+                sceneId: this.scene,
+            },
+            undefined,
+        );
+        return await new Promise((resolve) =>
+            this.nt.once(
+                "nodeIKernelGroupListener/onSearchMemberChange",
+                async (payload) => {
+                    resolve(
+                        new Map(
+                            [...payload.infos].map(([uid, user]) => [
+                                uid,
+                                encodeUser(user),
+                            ]),
                         ),
                     );
                 },

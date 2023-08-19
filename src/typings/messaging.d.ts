@@ -65,6 +65,11 @@ declare interface Messaging extends MessagingEventEmitter {
     getGroupInfo(uid: string): Promise<Group>;
     getFriendsList(forced: boolean): Promise<User[]>;
     getGroupsList(forced: boolean): Promise<Group[]>;
+    getGroupMentionEveryoneConfig(
+        uid: string,
+    ): Promise<GroupMentionEveryoneConfig>;
+    switchToEntity(entity: Entity): Promise<string>;
+    searchMemberList(keyword: string): Promise<Map<string, User>>;
 }
 
 declare interface Message {
@@ -147,10 +152,13 @@ declare interface MessageSendableElementText
     extends MessageSendableElementBase,
         MessageCommonElementText {}
 
+type MessageElementMentionType = "user" | "everyone" | number;
+
 interface MessageCommonElementMention {
     type: "mention";
+    mentionType: MessageElementMentionType;
     content: string;
-    uid: string;
+    uid?: string;
 }
 
 declare interface MessageNonSendableElementMention
@@ -244,7 +252,8 @@ declare interface MessageEntity {
 
 declare interface User extends Account {
     qid: string;
-    avatar: string;
+    avatarUrl?: string;
+    avatarFile?: string;
     name: string;
     bio: string;
     sex: "male" | "female" | "unset" | number;
@@ -259,6 +268,11 @@ declare interface Group {
     memberLimit: number;
     memberCount: number;
     raw: any;
+}
+
+declare interface GroupMentionEveryoneConfig {
+    hasPermission: boolean;
+    remainTimes: number;
 }
 
 declare type EntityType = "user" | "group" | number;

@@ -64,7 +64,7 @@ function MessageItemElementReply({
     }, [element, entity, api]);
 
     return (
-        <Stack direction="row" paddingBottom={0.5} sx={{ cursor: "pointer" }}>
+        <Stack direction="row" paddingBottom={0.5}>
             <Box
                 bgcolor="secondary.main"
                 width="3px"
@@ -163,7 +163,7 @@ const markdownIt: MarkdownIt = new MarkdownIt({
 });
 markdownIt.renderer.rules.paragraph_open = () => "<span>";
 markdownIt.renderer.rules.paragraph_close = (tokens, idx) =>
-    `</span>${idx !== tokens.length - 1 ? "<br>" : ""}`;
+    `</span>${tokens.length - 1 === idx ? "" : "<br>"}`;
 
 function MessageItemElementText({
     element,
@@ -201,6 +201,12 @@ function MessageItemElementText({
                         fontFamily:
                             "ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace",
                     },
+                    "& h1, & h2, & h3, & h4, & h5, & h6, & p, & ol, & ul": {
+                        margin: "0 !important",
+                    },
+                    "& ol, & ul": {
+                        paddingLeft: 20,
+                    },
                 }}
             />
         </>
@@ -215,7 +221,9 @@ function MessageItemElementMention({
     showProfile: ShowProfileFunc;
 }) {
     const onClick = useCallback(
-        () => showProfile({ type: "user", uid: element.uid }),
+        () =>
+            element.mentionType === "user" &&
+            showProfile({ type: "user", uid: element.uid! }),
         [element],
     );
 
@@ -347,12 +355,13 @@ function MessageItemElementFile({
                 (oldDownloadQueue) =>
                     new Map(oldDownloadQueue.set(element.id, [current, total])),
             );
+            updateDownloadedState();
         };
         api.messaging.media.on("download-progress-update", listener);
         return () => {
             api.messaging.media.off("download-progress-update", listener);
         };
-    }, [api, element]);
+    }, [api, element, updateDownloadedState]);
 
     useEffect(() => {
         const listener = (elementId: string) => {
@@ -963,7 +972,8 @@ export default function MessageList({ entity }: { entity: Entity }) {
         setAtBottom(true);
         setFirstItemIndex(START_INDEX);
         setLoading(false);
-    }, [entity]);
+        api.messaging.switchToEntity(entity);
+    }, [entity, api]);
 
     useEffect(() => {
         if (!loading) fetchMoreMessages().then(() => scrollToBottom(true));

@@ -1,6 +1,7 @@
 declare interface InternalApi extends InternalApi.EventEmitter {
     send(cmd: string, ...args: any[]): Promise<any>;
     listen(event?: string | undefined): Promise<void>;
+    unlisten(event?: string | undefined): Promise<void>;
 }
 
 declare namespace InternalApi {

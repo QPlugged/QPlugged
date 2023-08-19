@@ -1,0 +1,41 @@
+.ck.ck-balloon-panel.ck-balloon-panel_arrow_s::before,
+.ck.ck-balloon-panel.ck-balloon-panel_arrow_s::after {
+    display: none;
+}
+
+:root {
+    --ck-color-list-background: var(--mui-palette-background-paper);
+    --ck-color-list-button-on-text: var(--mui-palette-primary-contrastText);
+    --ck-color-list-button-hover-background: rgba(
+        var(--mui-palette-action-activeChannel) / var(--mui-palette-action-hoverOpacity)
+    );
+    --ck-color-list-button-on-background: var(--mui-palette-primary-main);
+    --ck-color-list-button-on-background-focus: var(--mui-palette-primary-dark);
+    --ck-color-button-on-color: var(--ck-color-list-button-on-text);
+    --ck-color-button-default-hover-background: var(
+        --ck-color-list-button-hover-background
+    );
+    --ck-color-button-default-active-background: var(
+        --ck-color-button-default-hover-background
+    );
+    --ck-color-button-on-background: var(--mui-palette-primary-main);
+    --ck-color-text: var(--mui-palette-text-primary);
+    --ck-color-link-default: var(--mui-palette-primary-main);
+    --ck-color-tooltip-text: var(--ck-color-text);
+    --ck-color-base-border: none;
+    --ck-color-base-background: var(--mui-palette-background-paper);
+    --ck-border-radius: 8px;
+    --ck-inner-shadow: none;
+    --ck-drop-shadow: var(--mui-shadows-6);
+    --ck-drop-shadow-active: var(--ck-drop-shadow);
+    --ck-focus-outer-shadow-geometry: 0 0 0 0px;
+    --ck-mention-list-max-height: none;
+}
+
+.ck.ck-balloon-panel {
+    overflow: hidden;
+}
+
+.ck.ck-content.ck-rounded-corners {
+    border-radius: 0 !important;
+}
