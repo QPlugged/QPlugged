@@ -1,6 +1,7 @@
 {
     "name": "qplugged",
     "private": true,
+    "license": "AGPL-3.0-or-later",
     "packageManager": "yarn@3.6.2",
     "version": "0.3.0",
     "type": "module",

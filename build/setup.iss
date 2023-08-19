@@ -21,6 +21,7 @@ DisableProgramGroupPage=yes
 ; Uncomment the following line to run in non administrative install mode (install for current user only.)
 ;PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
+LicenseFile=..\LICENSE.txt
 OutputDir=..\out
 OutputBaseFilename=qplugged-setup
 SetupIconFile=..\src-tauri\icons\icon.ico
