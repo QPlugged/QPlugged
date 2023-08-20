@@ -1,4 +1,5 @@
 import { ApiContext } from "../../Api";
+import ContextMenu from "../../components/ContextMenu";
 import RemoteAvatar from "../../components/RemoteAvatar";
 import RemoteFixedSizeImage from "../../components/RemoteFixedSizeImage";
 import Scrollbar from "../../components/Scrollbar";
@@ -12,6 +13,8 @@ import {
     Fab,
     Grow,
     Link,
+    Menu,
+    MenuItem,
     Stack,
     Typography,
     useColorScheme,
@@ -543,6 +546,7 @@ function MessageItem({
     lottieResourceDir,
     jumpToMessage,
     showProfile,
+    handleContextMenu,
 }: {
     lastMessage?: Message;
     message: Message;
@@ -555,6 +559,7 @@ function MessageItem({
     lottieResourceDir: string;
     jumpToMessage: JumpToMessageFunc;
     showProfile: ShowProfileFunc;
+    handleContextMenu: (event: React.MouseEvent<Element, MouseEvent>) => void;
 }) {
     const isFirstMessageSent = useMemo(
         () => !lastMessage || lastMessage.sender.uid !== message.sender.uid,
@@ -624,11 +629,13 @@ function MessageItem({
                     opacity: 1,
                 },
             }}
+            onContextMenu={handleContextMenu}
         >
             {showAvatar && (
                 <RemoteAvatar name={senderName} file={avatar} size={32} />
             )}
             {showAvatarPlaceholder && <Box width={32} flexShrink={0} />}
+
             <Stack
                 direction="column"
                 bgcolor={
@@ -745,6 +752,7 @@ function MessageItem({
                     })}
                 </Box>
             </Stack>
+
             <Stack
                 className="message-item-time"
                 fontSize={10}
@@ -772,6 +780,7 @@ export default function MessageList({ entity }: { entity: Entity }) {
     const [messages, setMessages] = useState<Map<string, Message>>(new Map());
     const [messagesId, setMessagesId] = useState<string[]>([]);
     const [highlightedMessageId, setHighlightedMessageId] = useState<string>();
+    const [contextMenuMessageId, setContextMenuMessageId] = useState<string>();
     const [avatars, setAvatars] = useState<Map<string, string>>(new Map());
     const [atTop, setAtTop] = useState<boolean>(false);
     const [atBottom, setAtBottom] = useState<boolean>(true);
@@ -981,77 +990,108 @@ export default function MessageList({ entity }: { entity: Entity }) {
 
     return (
         <Stack width="100%" height="100%" direction="column">
-            <Box position="relative" flex={1}>
-                {!loading ? (
-                    <Virtuoso
-                        ref={listRef}
-                        components={{
-                            Scroller: Scrollbar,
-                        }}
-                        css={css({ width: "100%", height: "100%" })}
-                        increaseViewportBy={{ top: 800, bottom: 800 }}
-                        firstItemIndex={firstItemIndex}
-                        initialTopMostItemIndex={MESSAGE_COUNT - 1}
-                        startReached={() => fetchMoreMessages()}
-                        atBottomStateChange={(atBottom) =>
-                            setAtBottom(atBottom)
-                        }
-                        data={messagesId}
-                        itemContent={(_, id) => {
-                            const message = messages.get(id)!;
+            <ContextMenu
+                menu={(props, closeContextMenu) => (
+                    <Menu {...props}>
+                        <MenuItem onClick={closeContextMenu}>
+                            {contextMenuMessageId}
+                        </MenuItem>
+                    </Menu>
+                )}
+            >
+                {(handleContextMenu, closeContextMenu) => (
+                    <Box position="relative" flex={1}>
+                        {!loading ? (
+                            <Virtuoso
+                                ref={listRef}
+                                components={{
+                                    Scroller: Scrollbar,
+                                }}
+                                css={css({ width: "100%", height: "100%" })}
+                                increaseViewportBy={{ top: 800, bottom: 800 }}
+                                firstItemIndex={firstItemIndex}
+                                initialTopMostItemIndex={MESSAGE_COUNT - 1}
+                                startReached={() => fetchMoreMessages()}
+                                atBottomStateChange={(atBottom) =>
+                                    setAtBottom(atBottom)
+                                }
+                                data={messagesId}
+                                isScrolling={(isScrolling) => {
+                                    if (isScrolling) closeContextMenu();
+                                }}
+                                itemContent={(_, id) => {
+                                    const message = messages.get(id)!;
 
-                            return (
-                                message && (
-                                    <MessageItem
-                                        lastMessage={messages.get(
-                                            messagesId[
-                                                messagesId.indexOf(id) - 1
-                                            ],
-                                        )}
-                                        message={message}
-                                        nextMessage={messages.get(
-                                            messagesId[
-                                                messagesId.indexOf(id) + 1
-                                            ],
-                                        )}
-                                        highlighted={
-                                            highlightedMessageId === id
-                                        }
-                                        entity={entity}
-                                        avatar={
-                                            avatars.get(message.sender.uid)!
-                                        }
-                                        loggedInAccount={authData!}
-                                        faceResourceDir={faceResourceDir!}
-                                        lottieResourceDir={lottieResourceDir!}
-                                        jumpToMessage={jumpToMessage}
-                                        showProfile={() => undefined}
-                                    />
-                                )
-                            );
-                        }}
-                    />
-                ) : (
-                    <Box
-                        position="absolute"
-                        left="50%"
-                        top="50%"
-                        sx={{ transform: "translate(-50%,-50%)" }}
-                    >
-                        <CircularProgress />
+                                    return (
+                                        message && (
+                                            <MessageItem
+                                                lastMessage={messages.get(
+                                                    messagesId[
+                                                        messagesId.indexOf(id) -
+                                                            1
+                                                    ],
+                                                )}
+                                                message={message}
+                                                nextMessage={messages.get(
+                                                    messagesId[
+                                                        messagesId.indexOf(id) +
+                                                            1
+                                                    ],
+                                                )}
+                                                highlighted={
+                                                    highlightedMessageId === id
+                                                }
+                                                entity={entity}
+                                                avatar={
+                                                    avatars.get(
+                                                        message.sender.uid,
+                                                    )!
+                                                }
+                                                loggedInAccount={authData!}
+                                                faceResourceDir={
+                                                    faceResourceDir!
+                                                }
+                                                lottieResourceDir={
+                                                    lottieResourceDir!
+                                                }
+                                                jumpToMessage={jumpToMessage}
+                                                showProfile={() => undefined}
+                                                handleContextMenu={(event) => {
+                                                    setContextMenuMessageId(id);
+                                                    handleContextMenu(event);
+                                                }}
+                                            />
+                                        )
+                                    );
+                                }}
+                            />
+                        ) : (
+                            <Box
+                                position="absolute"
+                                left="50%"
+                                top="50%"
+                                sx={{ transform: "translate(-50%,-50%)" }}
+                            >
+                                <CircularProgress />
+                            </Box>
+                        )}
+                        <Grow in={!atBottom}>
+                            <Fab
+                                color="primary"
+                                size="small"
+                                sx={{
+                                    position: "absolute",
+                                    right: 12,
+                                    bottom: 12,
+                                }}
+                                onClick={() => scrollToBottom(false)}
+                            >
+                                <ArrowDownward />
+                            </Fab>
+                        </Grow>
                     </Box>
                 )}
-                <Grow in={!atBottom}>
-                    <Fab
-                        color="primary"
-                        size="small"
-                        sx={{ position: "absolute", right: 12, bottom: 12 }}
-                        onClick={() => scrollToBottom(false)}
-                    >
-                        <ArrowDownward />
-                    </Fab>
-                </Grow>
-            </Box>
+            </ContextMenu>
             <ChatBox entity={entity} scrollToBottom={scrollToBottom} />
         </Stack>
     );
