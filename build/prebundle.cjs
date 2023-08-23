@@ -67,7 +67,7 @@ async function compressExecutable() {
             await zip.uncompress(upxArchiveFile, upxDir);
         else
             await new Promise((resolve, reject) =>
-                spawn("tar", ["-xvJf", "-C", upxDir, upxArchiveFile], {
+                spawn("tar", ["-xvJf", upxArchiveFile, "-C", upxDir], {
                     stdio: "inherit",
                 })
                     .on("exit", () => resolve())
@@ -79,8 +79,8 @@ async function compressExecutable() {
     const possibleTargetPaths = [
         `${process.env.TAURI_TARGET_TRIPLE}/QPlugged${executableFileExt}`,
         `QPlugged${executableFileExt}`,
-        `${process.env.TAURI_TARGET_TRIPLE}/qplugged${executableFileExt}`,
-        `qplugged${executableFileExt}`,
+        `${process.env.TAURI_TARGET_TRIPLE}/q-plugged${executableFileExt}`,
+        `q-plugged${executableFileExt}`,
     ];
     for (const targetPath of possibleTargetPaths) {
         const path = `./src-tauri/target/release/${targetPath}`;

@@ -98,5 +98,6 @@ jobs:
               with:
                   name: build-${{ runner.os }}
                   path: |
-                      src-tauri/target/release/q-plugged
-                      src-tauri/target/release/QPlugged.exe
+                      out/*.exe
+                      src-tauri/target/release/bundle/deb/*.deb
+                      src-tauri/target/release/bundle/appimage/*.AppImage

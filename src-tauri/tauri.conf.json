@@ -38,21 +38,7 @@
                 }
             ]
         },
-        "windows": [
-            {
-                "label": "main",
-                "transparent": true,
-                "fullscreen": false,
-                "resizable": true,
-                "title": "QPlugged",
-                "width": 0,
-                "height": 0,
-                "decorations": false,
-                "windowEffects": {
-                    "effects": ["mica"]
-                }
-            }
-        ]
+        "windows": []
     },
     "plugins": {
         "shell": {
