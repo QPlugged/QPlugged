@@ -1,4 +1,5 @@
 import { ApiContext } from "../../Api";
+import { messageElementsToHTMLAndPlainText } from "../../backend/messaging/converter";
 import ContextMenu from "../../components/ContextMenu";
 import RemoteAvatar from "../../components/RemoteAvatar";
 import RemoteFixedSizeImage from "../../components/RemoteFixedSizeImage";
@@ -28,8 +29,7 @@ import {
     Typography,
     useColorScheme,
 } from "@mui/material";
-import { dirname, extname, join, tempDir } from "@tauri-apps/api/path";
-import { writeBinaryFile } from "@tauri-apps/plugin-fs";
+import { dirname } from "@tauri-apps/api/path";
 import { open } from "@tauri-apps/plugin-shell";
 import dayjs from "dayjs";
 import equal from "fast-deep-equal";
@@ -38,7 +38,6 @@ import { atom, useAtom } from "jotai";
 import Lottie from "lottie-react";
 import MarkdownIt from "markdown-it";
 import { escapeHtml } from "markdown-it/lib/common/utils";
-import { nanoid } from "nanoid";
 import prettyBytes from "pretty-bytes";
 import {
     Fragment,
@@ -51,7 +50,6 @@ import {
     useRef,
     useState,
 } from "react";
-import { useInView } from "react-intersection-observer";
 import { useNavigate } from "react-router-dom";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
@@ -564,6 +562,7 @@ function MessageItem({
     highlighted,
     selected,
     onSelect,
+    selectionMode,
     entity,
     avatar,
     loggedInAccount,
@@ -579,6 +578,7 @@ function MessageItem({
     highlighted: boolean;
     selected: boolean;
     onSelect: () => void;
+    selectionMode: boolean;
     entity: Entity;
     avatar: string;
     loggedInAccount: Account;
@@ -609,7 +609,7 @@ function MessageItem({
         [isLastMessageSent, isSelf],
     );
     const showAvatarPlaceholder = useMemo(
-        () => !isSelf,
+        () => !showAvatar || isSelf,
         [isLastMessageSent, isSelf],
     );
     const showName = useMemo(
@@ -634,13 +634,19 @@ function MessageItem({
             message.elements[0].type === "image",
         [message],
     );
-    const { ref: rootRef, inView, entry } = useInView({ threshold: 0.99 });
+    const rootRef = useRef<HTMLButtonElement>(null);
 
     const RADIUS_BIG = 12;
     const RADIUS_SMALL = 4;
 
+    useEffect(() => {
+        if (highlighted && rootRef.current) rootRef.current.focus();
+    }, [highlighted]);
+
     return (
         <Stack
+            role="presentation"
+            component="button"
             bgcolor={highlighted ? "primary.main" : "transparent"}
             className="message-item"
             width="100%"
@@ -651,7 +657,9 @@ function MessageItem({
             paddingTop={isFirstMessageSent ? 0.5 : 0.25}
             paddingBottom={isLastMessageSent ? 0.5 : 0.25}
             gap={1}
+            border="none"
             sx={{
+                textAlign: "left",
                 transition: "all 0.2s ease",
                 "&:hover .message-item-time": {
                     opacity: 1,
@@ -663,25 +671,12 @@ function MessageItem({
             onContextMenu={handleContextMenu}
             onClick={onSelect}
             ref={rootRef}
+            tabIndex={0}
         >
-            {showAvatarPlaceholder && (
-                <RemoteAvatar
-                    name={senderName}
-                    file={avatar}
-                    size={32}
-                    sx={{
-                        position: "sticky",
-                        bottom: 12,
-                        opacity:
-                            (!inView &&
-                                entry &&
-                                entry.boundingClientRect.bottom > 0) ||
-                            showAvatar
-                                ? 1
-                                : 0,
-                    }}
-                />
+            {showAvatar && (
+                <RemoteAvatar name={senderName} file={avatar} size={32} />
             )}
+            {showAvatarPlaceholder && <Box width={32} />}
             <Stack
                 direction="column"
                 bgcolor={
@@ -711,8 +706,8 @@ function MessageItem({
                             ? RADIUS_BIG
                             : RADIUS_SMALL
                         : RADIUS_BIG,
-                    pointerEvents: selected ? "none" : "auto",
-                    userSelect: selected ? "none" : "auto",
+                    pointerEvents: selectionMode ? "none" : "auto",
+                    userSelect: selectionMode ? "none" : "auto",
                 }}
                 maxWidth="60%"
                 overflow="hidden"
@@ -732,9 +727,9 @@ function MessageItem({
                     whiteSpace="nowrap"
                     aria-hidden="true"
                     sx={{
-                        userSelect: "none",
+                        userSelect: selectionMode ? "none" : "auto",
                         opacity: showName ? 1 : 0,
-                        pointerEvents: "none",
+                        pointerEvents: selectionMode ? "none" : "auto",
                     }}
                 >
                     {senderName}
@@ -968,91 +963,17 @@ const MessageList = forwardRef<
                     async ([_, message]) =>
                         [
                             message,
-                            await Promise.all(
-                                message.elements.map(async (element) => {
-                                    let child = "";
-                                    let textChild = "";
-                                    if (element.type === "reply") {
-                                        const text = element.sourceMessageText;
-                                        const sourceMessage = (
-                                            await api.messaging.getPreviousMessagesBySeq(
-                                                message.entity,
-                                                7,
-                                                element.sourceMessageSeq,
-                                                false,
-                                            )
-                                        )?.[0];
-                                        child = `<blockquote>${escapeHtml(
-                                            `[回复] ${
-                                                sourceMessage
-                                                    ? `${
-                                                          sourceMessage.sender
-                                                              .memberName ||
-                                                          sourceMessage.sender
-                                                              .name
-                                                      }: `
-                                                    : ""
-                                            }${text}`,
-                                        )}</blockquote><br>`;
-                                        textChild = `[回复] ${element.sourceMessageText}\n`;
-                                    } else if (element.type === "revoke") {
-                                        const text = element.isRevokedBySelf
-                                            ? `${
-                                                  element.sender.memberName ||
-                                                  element.sender.name
-                                              } 撤回了一条消息`
-                                            : `${
-                                                  element.operator.memberName ||
-                                                  element.operator.name
-                                              } 撤回了 ${
-                                                  element.sender.memberName ||
-                                                  element.sender.name
-                                              }`;
-                                        child = `<i>${escapeHtml(text)}</i>`;
-                                        textChild = text;
-                                    } else if (element.type === "text") {
-                                        child = markdownIt.render(
-                                            element.content,
-                                        );
-                                        textChild = element.content;
-                                    } else if (element.type === "mention") {
-                                        const text = element.content;
-                                        child = escapeHtml(text);
-                                        textChild = text;
-                                    } else if (element.type === "image") {
-                                        const file = await element.progress;
-                                        const data =
-                                            await api.fs.readBinaryFile(file);
-                                        const temp = await join(
-                                            await tempDir(""),
-                                            `${nanoid()}.${await extname(
-                                                file,
-                                            )}`,
-                                        );
-                                        writeBinaryFile(temp, data);
-                                        child = `<img src="${temp}" alt="">`;
-                                        textChild = "[图片]";
-                                    } else if (element.type === "face") {
-                                        const text = "[动画表情]";
-                                        child = escapeHtml(text);
-                                        textChild = text;
-                                    } else if (element.type === "file") {
-                                        const text = `[文件: ${element.name}]`;
-                                        child = escapeHtml(text);
-                                        textChild = text;
-                                    } else if (element.type === "raw") {
-                                        const text = `[不支持渲染此元素: ${JSON.stringify(
-                                            element.raw,
-                                        )}]`;
-                                        child = escapeHtml(text);
-                                        textChild = text;
-                                    }
-                                    return [child, textChild];
-                                }),
+                            await messageElementsToHTMLAndPlainText(
+                                message.elements,
+                                message.entity,
+                                api.messaging,
+                                api.fs,
+                                markdownIt,
                             ),
                         ] as [Message, [string, string][]],
                 ),
         );
+
         const html = content
             .map(
                 ([message, elements]) =>
@@ -1069,36 +990,13 @@ const MessageList = forwardRef<
                     }:\n${elements.map(([_, text]) => text).join("")}`,
             )
             .join("\n\n");
+
         await navigator.clipboard.write([
             new ClipboardItem({
                 "text/html": new Blob([html], { type: "text/html" }),
                 "text/plain": new Blob([text], { type: "text/plain" }),
             }),
         ]);
-        // const selection = window.getSelection();
-        // selection?.removeAllRanges();
-        // const range = document.createRange();
-        // let isFirst = true;
-        // for (const { id } of selectedMessages.sort(
-        //     (a, b) => a.timestamp - b.timestamp,
-        // )) {
-        //     const contextElement = messageContentElementsRef.current.get(id);
-        //     if (!contextElement) continue;
-
-        //     if (isFirst)
-        //         range.setStartBefore(
-        //             contextElement.firstElementChild!.nextElementSibling!,
-        //         );
-        //     isFirst = false;
-
-        //     range.setEndAfter(
-        //         contextElement.firstElementChild!.nextElementSibling!
-        //             .nextElementSibling!,
-        //     );
-        // }
-        // selection?.addRange(range);
-        // document.execCommand("copy");
-        // selection?.removeAllRanges();
     }, [api, selectedMessages]);
 
     const menuForward = useCallback(() => {
@@ -1342,6 +1240,7 @@ const MessageList = forwardRef<
                                                             ),
                                                         );
                                             }}
+                                            selectionMode={selectionMode}
                                             entity={entity}
                                             avatar={
                                                 avatars.get(message.sender.uid)!

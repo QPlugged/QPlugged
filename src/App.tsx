@@ -224,7 +224,7 @@ function App() {
     return (
         <Experimental_CssVarsProvider theme={theme} defaultMode="system">
             <CssBaseline enableColorScheme />
-            <Box sx={{ position: "fixed", inset: 0 }}>
+            <Box role="application" sx={{ position: "fixed", inset: 0 }}>
                 {endpointState === "connected" ? (
                     <ApiContext.Provider value={api!}>
                         <RouterProvider router={router} />
