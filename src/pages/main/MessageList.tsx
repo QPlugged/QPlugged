@@ -962,90 +962,96 @@ const MessageList = forwardRef<
     const menuCopy = useCallback(async () => {
         if (!selectedMessages) return;
         const content: [Message, [string, string][]][] = await Promise.all(
-            [...selectedMessages].map(
-                async ([_, message]) =>
-                    [
-                        message,
-                        await Promise.all(
-                            message.elements.map(async (element) => {
-                                let child = "";
-                                let textChild = "";
-                                if (element.type === "reply") {
-                                    const text = element.sourceMessageText;
-                                    const sourceMessage = (
-                                        await api.messaging.getPreviousMessagesBySeq(
-                                            message.entity,
-                                            7,
-                                            element.sourceMessageSeq,
-                                            false,
-                                        )
-                                    )?.[0];
-                                    child = `<blockquote>${escapeHtml(
-                                        `[回复] ${
-                                            sourceMessage
-                                                ? `${
-                                                      sourceMessage.sender
-                                                          .memberName ||
-                                                      sourceMessage.sender.name
-                                                  }: `
-                                                : ""
-                                        }${text}`,
-                                    )}</blockquote><br>`;
-                                    textChild = `[回复] ${element.sourceMessageText}\n`;
-                                } else if (element.type === "revoke") {
-                                    const text = element.isRevokedBySelf
-                                        ? `${
-                                              element.sender.memberName ||
-                                              element.sender.name
-                                          } 撤回了一条消息`
-                                        : `${
-                                              element.operator.memberName ||
-                                              element.operator.name
-                                          } 撤回了 ${
-                                              element.sender.memberName ||
-                                              element.sender.name
-                                          }`;
-                                    child = `<i>${escapeHtml(text)}</i>`;
-                                    textChild = text;
-                                } else if (element.type === "text") {
-                                    child = markdownIt.render(element.content);
-                                    textChild = element.content;
-                                } else if (element.type === "mention") {
-                                    const text = element.content;
-                                    child = escapeHtml(text);
-                                    textChild = text;
-                                } else if (element.type === "image") {
-                                    const file = await element.progress;
-                                    const data = await api.fs.readBinaryFile(
-                                        file,
-                                    );
-                                    const temp = await join(
-                                        await tempDir(""),
-                                        `${nanoid()}.${await extname(file)}`,
-                                    );
-                                    writeBinaryFile(temp, data);
-                                    child = `<img src="${temp}" alt="">`;
-                                    textChild = "[图片]";
-                                } else if (element.type === "face") {
-                                    const text = "[动画表情]";
-                                    child = escapeHtml(text);
-                                    textChild = text;
-                                } else if (element.type === "file") {
-                                    const text = `[文件: ${element.name}]`;
-                                    child = escapeHtml(text);
-                                    textChild = text;
-                                } else if (element.type === "raw") {
-                                    const text = `[不支持渲染此元素: ${JSON.stringify(
-                                        element.raw,
-                                    )}]`;
-                                    child = escapeHtml(text);
-                                    textChild = text;
-                                }
-                                return [child, textChild];
-                            }),
-                        ),
-                    ] as [Message, [string, string][]],
-            ),
+            [...selectedMessages]
+                .sort((a, b) => a[1].timestamp - b[1].timestamp)
+                .map(
+                    async ([_, message]) =>
+                        [
+                            message,
+                            await Promise.all(
+                                message.elements.map(async (element) => {
+                                    let child = "";
+                                    let textChild = "";
+                                    if (element.type === "reply") {
+                                        const text = element.sourceMessageText;
+                                        const sourceMessage = (
+                                            await api.messaging.getPreviousMessagesBySeq(
+                                                message.entity,
+                                                7,
+                                                element.sourceMessageSeq,
+                                                false,
+                                            )
+                                        )?.[0];
+                                        child = `<blockquote>${escapeHtml(
+                                            `[回复] ${
+                                                sourceMessage
+                                                    ? `${
+                                                          sourceMessage.sender
+                                                              .memberName ||
+                                                          sourceMessage.sender
+                                                              .name
+                                                      }: `
+                                                    : ""
+                                            }${text}`,
+                                        )}</blockquote><br>`;
+                                        textChild = `[回复] ${element.sourceMessageText}\n`;
+                                    } else if (element.type === "revoke") {
+                                        const text = element.isRevokedBySelf
+                                            ? `${
+                                                  element.sender.memberName ||
+                                                  element.sender.name
+                                              } 撤回了一条消息`
+                                            : `${
+                                                  element.operator.memberName ||
+                                                  element.operator.name
+                                              } 撤回了 ${
+                                                  element.sender.memberName ||
+                                                  element.sender.name
+                                              }`;
+                                        child = `<i>${escapeHtml(text)}</i>`;
+                                        textChild = text;
+                                    } else if (element.type === "text") {
+                                        child = markdownIt.render(
+                                            element.content,
+                                        );
+                                        textChild = element.content;
+                                    } else if (element.type === "mention") {
+                                        const text = element.content;
+                                        child = escapeHtml(text);
+                                        textChild = text;
+                                    } else if (element.type === "image") {
+                                        const file = await element.progress;
+                                        const data =
+                                            await api.fs.readBinaryFile(file);
+                                        const temp = await join(
+                                            await tempDir(""),
+                                            `${nanoid()}.${await extname(
+                                                file,
+                                            )}`,
+                                        );
+                                        writeBinaryFile(temp, data);
+                                        child = `<img src="${temp}" alt="">`;
+                                        textChild = "[图片]";
+                                    } else if (element.type === "face") {
+                                        const text = "[动画表情]";
+                                        child = escapeHtml(text);
+                                        textChild = text;
+                                    } else if (element.type === "file") {
+                                        const text = `[文件: ${element.name}]`;
+                                        child = escapeHtml(text);
+                                        textChild = text;
+                                    } else if (element.type === "raw") {
+                                        const text = `[不支持渲染此元素: ${JSON.stringify(
+                                            element.raw,
+                                        )}]`;
+                                        child = escapeHtml(text);
+                                        textChild = text;
+                                    }
+                                    return [child, textChild];
+                                }),
+                            ),
+                        ] as [Message, [string, string][]],
+                ),
         );
         const html = content
             .map(
