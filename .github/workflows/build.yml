@@ -1,0 +1,102 @@
+name: CI
+
+on:
+    push:
+        branches: ["main"]
+        tags:
+            - v*
+    pull_request:
+        branches: ["main"]
+
+env:
+    CARGO_TERM_COLOR: always
+
+jobs:
+    build:
+        strategy:
+            matrix:
+                os: [ubuntu-latest, windows-latest]
+        runs-on: ${{ matrix.os }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v3
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v3
+              with:
+                  node-version: 18
+
+            - name: Set up Rust toolchain
+              id: rust-toolchain
+              uses: dtolnay/rust-toolchain@stable
+
+            - name: Use Corepack
+              run: corepack enable
+
+            - name: Get Yarn cache directory path
+              if: runner.os != 'Windows'
+              id: yarn-cache-dir-path
+              run: echo "dir=$(yarn config get cacheFolder)" >> $GITHUB_OUTPUT
+
+            - name: Get Yarn cache directory path (Windows)
+              if: runner.os == 'Windows'
+              id: yarn-cache-dir-path-win
+              run: echo "dir=$(yarn config get cacheFolder)" >> $env:GITHUB_OUTPUT
+
+            - name: Cache Yarn dependencies
+              if: runner.os != 'Windows'
+              uses: actions/cache@v3
+              with:
+                  path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+                  key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+                  restore-keys: |
+                      ${{ runner.os }}-yarn-
+
+            - name: Cache Yarn dependencies (Windows)
+              if: runner.os == 'Windows'
+              uses: actions/cache@v3
+              with:
+                  path: ${{ steps.yarn-cache-dir-path-win.outputs.dir }}
+                  key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+                  restore-keys: |
+                      ${{ runner.os }}-yarn-
+
+            - name: Cache Cargo dependencies
+              uses: actions/cache@v3
+              with:
+                  path: |
+                      ~/.cargo/bin/
+                      ~/.cargo/registry/index/
+                      ~/.cargo/registry/cache/
+                      ~/.cargo/git/db/
+                      src-tauri/target/
+                  key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ steps.rust-toolchain.outputs.cachekey }}
+
+            - name: Install Linux dependencies
+              if: runner.os == 'Linux'
+              run: |
+                  sudo apt update
+                  sudo apt install libwebkit2gtk-4.1-dev \
+                    build-essential \
+                    curl \
+                    wget \
+                    file \
+                    libssl-dev \
+                    libgtk-3-dev \
+                    libayatana-appindicator3-dev \
+                    librsvg2-dev \
+                    libsoup-3.0-dev
+
+            - name: Install dependencies
+              run: yarn
+
+            - name: Build
+              run: yarn build
+
+            - name: Upload artifacts
+              uses: actions/upload-artifact@v3
+              with:
+                  name: build-${{ runner.os }}
+                  path: |
+                      src-tauri/target/release/q-plugged
+                      src-tauri/target/release/QPlugged.exe
