@@ -18,20 +18,26 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![get_server_url])
         .setup(|app| {
+            const DEFAULT_WIDTH: f64 = 800.;
+            const DEFAULT_HEIGHT: f64 = 600.;
             let mut window_builder = WindowBuilder::new(app, "main", WindowUrl::default());
             #[cfg(desktop)]
             {
-                window_builder = window_builder
-                    .decorations(false)
-                    .title("QPlugged")
-                    .inner_size(1., 1.);
+                window_builder = window_builder.title("QPlugged");
             }
 
             #[cfg(target_os = "windows")]
             {
                 window_builder = window_builder
                     .transparent(true)
-                    .effects(EffectsBuilder::new().effect(Effect::Mica).build());
+                    .decorations(false)
+                    .effects(EffectsBuilder::new().effect(Effect::Mica).build())
+                    .inner_size(1., 1.);
+            }
+
+            #[cfg(not(target_os = "windows"))]
+            {
+                window_builder = window_builder.inner_size(DEFAULT_WIDTH, DEFAULT_HEIGHT);
             }
 
             #[cfg(target_os = "macos")]
@@ -39,23 +45,24 @@ pub fn run() {
                 window_builder = window_builder.transparent(true);
             }
 
-            let window = window_builder.build().unwrap();
+            let window = window_builder.build()?;
 
             #[cfg(debug_assertions)]
             window.open_devtools();
 
-            #[cfg(desktop)]
+            #[cfg(target_os = "windows")]
             {
                 window.set_size(tauri::LogicalSize {
-                    width: 0.0,
-                    height: 0.0,
+                    width: 0.,
+                    height: 0.,
                 })?;
                 window.set_size(tauri::LogicalSize {
-                    width: 800.0,
-                    height: 600.0,
+                    width: DEFAULT_WIDTH,
+                    height: DEFAULT_HEIGHT,
                 })?;
-                window.set_decorations(true).unwrap();
+                window.set_decorations(true)?;
             }
+
             Ok(())
         })
         .run(tauri::generate_context!())
