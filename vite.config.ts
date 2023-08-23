@@ -1,9 +1,13 @@
 import ckeditor5 from "@ckeditor/vite-plugin-ckeditor5";
+import { NodeGlobalsPolyfillPlugin } from "@esbuild-plugins/node-globals-polyfill";
+import { NodeModulesPolyfillPlugin } from "@esbuild-plugins/node-modules-polyfill";
 import react from "@vitejs/plugin-react";
 import { internalIpV4 } from "internal-ip";
 import { createRequire } from "module";
+import rollupNodePolyFill from "rollup-plugin-polyfill-node";
 import { defineConfig } from "vite";
 import obfuscatorPlugin from "vite-plugin-javascript-obfuscator";
+
 const require = createRequire(import.meta.url);
 
 const mobile = !!/android|ios/.exec(process.env.TAURI_PLATFORM);
@@ -49,6 +53,23 @@ export default defineConfig(async (env) => ({
         chunkSizeWarningLimit: Infinity,
         outDir: "dist/vite",
         emptyOutDir: true,
+        // rollupOptions: {
+        //     // plugins: [rollupNodePolyFill()],
+        // },
+    },
+    optimizeDeps: {
+        esbuildOptions: {
+            define: {
+                global: "globalThis",
+            },
+            // Enable esbuild polyfill plugins
+            plugins: [
+                // NodeGlobalsPolyfillPlugin({
+                //     buffer: true,
+                // }),
+                NodeModulesPolyfillPlugin(),
+            ],
+        },
     },
 
     // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`

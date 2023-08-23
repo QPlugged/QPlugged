@@ -1,14 +1,21 @@
 import RemoteFixedSizeImage from "./RemoteFixedSizeImage";
-import { Avatar } from "@mui/material";
+import { Avatar, SxProps, Theme } from "@mui/material";
 
 export default function RemoteAvatar({
     name,
     file,
     url,
     size,
-}: { name: string; file?: string; url?: string; size: number }) {
+    sx,
+}: {
+    name: string;
+    file?: string;
+    url?: string;
+    size: number;
+    sx?: SxProps<Theme>;
+}) {
     return (
-        <Avatar sx={{ width: `${size}px`, height: `${size}px` }}>
+        <Avatar sx={{ width: `${size}px`, height: `${size}px`, ...sx }}>
             {file || url ? (
                 <RemoteFixedSizeImage
                     width={size}

@@ -101,3 +101,26 @@ export function decodeEntity(data: Entity): any {
         guildId: "",
     };
 }
+
+export async function decodeElement(
+    element: MessageSendableElement,
+    media: MessagingMedia,
+) {
+    return await {
+        reply: decodeReplyElement,
+        text: decodeTextElement,
+        mention: decodeMentionElement,
+        image: async (element: MessageSendableElementImage) =>
+            decodeImageElement(
+                await media.prepareImageElement(
+                    element.file,
+                    element.imageType,
+                    element.imageSubType,
+                ),
+            ),
+        file: async (element: MessageSendableElementFile) =>
+            decodeFileElement(await media.prepareFileElement(element.file)),
+        face: decodeFaceElement,
+        raw: decodeRawElement,
+    }[element.type](element as any);
+}

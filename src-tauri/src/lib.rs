@@ -11,6 +11,7 @@ pub fn run() {
         .plugin(tauri_plugin_window::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![get_server_url])
         .setup(|app| {
             let window = tauri::Manager::get_window(app, "main").ok_or("cannot get main window")?;

@@ -1,14 +1,5 @@
 import { filterEntities } from "./converter";
-import {
-    decodeEntity,
-    decodeFaceElement,
-    decodeFileElement,
-    decodeImageElement,
-    decodeMentionElement,
-    decodeRawElement,
-    decodeReplyElement,
-    decodeTextElement,
-} from "./decoder";
+import { decodeElement, decodeEntity } from "./decoder";
 import { encodeGroup, encodeMessage, encodeUser } from "./encoder";
 import { MessagingMediaImpl } from "./media";
 import EventEmitter from "eventemitter3";
@@ -132,31 +123,9 @@ export class MessagingImpl
                 msgId: "0",
                 peer: decodeEntity(entity),
                 msgElements: await Promise.all(
-                    elements.map(async (element) => {
-                        return await {
-                            reply: decodeReplyElement,
-                            text: decodeTextElement,
-                            mention: decodeMentionElement,
-                            image: async (
-                                element: MessageSendableElementImage,
-                            ) =>
-                                decodeImageElement(
-                                    await this.media.prepareImageElement(
-                                        element.file,
-                                        element.imageType,
-                                        element.imageSubType,
-                                    ),
-                                ),
-                            file: async (element: MessageSendableElementFile) =>
-                                decodeFileElement(
-                                    await this.media.prepareFileElement(
-                                        element.file,
-                                    ),
-                                ),
-                            face: decodeFaceElement,
-                            raw: decodeRawElement,
-                        }[element.type](element as any);
-                    }),
+                    elements.map((element) =>
+                        decodeElement(element, this.media),
+                    ),
                 ),
             },
             null,
@@ -169,6 +138,55 @@ export class MessagingImpl
                 resolve(message);
             }),
         );
+    }
+
+    async forwardMessage(
+        fromEntity: Entity,
+        toEntities: Entity[],
+        messages: [MessageEntity, string][],
+        extraElements: MessageSendableElement[],
+        combine: boolean,
+    ): Promise<void> {
+        const payload = Object.assign(
+            {
+                srcContact: decodeEntity(fromEntity),
+                commentElements: await Promise.all(
+                    extraElements.map((element) =>
+                        decodeElement(element, this.media),
+                    ),
+                ),
+            },
+            combine
+                ? {
+                      msgInfos: messages.map(([sender, id]) => ({
+                          msgId: id,
+                          senderShowName: sender.name,
+                      })),
+                  }
+                : { msgIds: messages.map(([_, id]) => id) },
+        );
+        if (combine)
+            for (const entity of toEntities) {
+                await this.nt.send(
+                    "nodeIKernelMsgService/multiForwardMsgWithComment",
+                    {
+                        ...payload,
+                        dstContact: decodeEntity(entity),
+                    },
+                    undefined,
+                );
+            }
+        else
+            await this.nt.send(
+                "nodeIKernelMsgService/forwardMsgWithComment",
+                {
+                    ...payload,
+                    dstContacts: toEntities.map((entity) =>
+                        decodeEntity(entity),
+                    ),
+                },
+                undefined,
+            );
     }
 
     async getAvatars(entities: Entity[]): Promise<Map<Entity, string>> {

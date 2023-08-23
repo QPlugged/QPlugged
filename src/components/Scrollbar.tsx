@@ -31,6 +31,8 @@ const Scrollbar = forwardRef<
             css={css({
                 width: "100%",
                 height: "100%",
+                minWidth: "inherit",
+                minHeight: "inherit",
                 "& > .ScrollbarsCustom-Wrapper": {
                     position: "absolute",
                     overflow: "hidden",

@@ -60,6 +60,13 @@ declare interface Messaging extends MessagingEventEmitter {
         entity: Entity,
         elements: MessageSendableElement[],
     ): Promise<string>;
+    forwardMessage(
+        fromEntity: Entity,
+        toEntities: Entity[],
+        messages: [MessageEntity, string][],
+        extraElements: MessageSendableElement[],
+        combine: boolean,
+    ): Promise<void>;
     getAvatars(entities: Entity[]): Promise<Map<Entity, string>>;
     getUserInfo(uid: string): Promise<User>;
     getGroupInfo(uid: string): Promise<Group>;

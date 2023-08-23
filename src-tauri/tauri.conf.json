@@ -34,7 +34,7 @@
                 {
                     "domain": "tauri.localhost",
                     "windows": ["main"],
-                    "plugins": ["shell", "dialog"]
+                    "plugins": ["window", "shell", "dialog", "fs"]
                 }
             ]
         },
@@ -57,6 +57,9 @@
     "plugins": {
         "shell": {
             "open": ".*"
+        },
+        "fs": {
+            "scope": ["$TEMP/**"]
         }
     }
 }

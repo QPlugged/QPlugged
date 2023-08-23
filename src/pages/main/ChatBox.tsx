@@ -1,5 +1,6 @@
 import { ApiContext } from "../../Api";
 import RemoteAvatar from "../../components/RemoteAvatar";
+import { MessageListHandle } from "./MessageList";
 import { Autoformat } from "@ckeditor/ckeditor5-autoformat";
 import { Bold, Italic } from "@ckeditor/ckeditor5-basic-styles";
 import { Editor, EditorConfig } from "@ckeditor/ckeditor5-core";
@@ -74,8 +75,8 @@ const domParse = new DOMParser();
 
 export default function ChatBox({
     entity,
-    scrollToBottom,
-}: { entity: Entity; scrollToBottom: () => void }) {
+    listRef,
+}: { entity: Entity; listRef: React.RefObject<MessageListHandle> }) {
     const api = useContext(ApiContext);
     const getIsEmpty = useCallback(
         (content: string) => content.trim() === "",
@@ -145,7 +146,7 @@ export default function ChatBox({
                     lastElement.content.length - 1,
                 );
             await api.messaging.sendMessage(entity, elements);
-            scrollToBottom();
+            listRef.current?.scrollToBottom();
         },
         [api, entity, getIsEmpty],
     );

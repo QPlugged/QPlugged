@@ -13,8 +13,10 @@ export default function IndexPage() {
         api.login.getCurrentAccount().then((account) => {
             setLoading(false);
             const isInLoginPage = location.pathname.startsWith("/login");
+            const isInEmptyPage = location.pathname === "/";
             if (!account && !isInLoginPage) navigate("/login");
-            else if (account && isInLoginPage) navigate("/");
+            else if (account && (isInEmptyPage || isInLoginPage))
+                navigate("/main");
         });
     }, [api, location, navigate]);
 

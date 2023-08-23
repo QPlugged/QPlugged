@@ -18,7 +18,7 @@ export class FilesystemImpl implements Filesystem {
     readTextFile(path: string): Promise<string> {
         return this._readFile(path, "utf-8");
     }
-    readBinaryFile(path: string): Promise<any> {
+    readBinaryFile(path: string): Promise<Uint8Array> {
         return this._readFile(path);
     }
     copyFile(from: string, to: string): Promise<void> {

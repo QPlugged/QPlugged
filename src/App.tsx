@@ -7,6 +7,7 @@ import { MessagingImpl } from "./backend/messaging";
 import IndexPage from "./pages/IndexPage";
 import LoginPage from "./pages/login/LoginPage";
 import { MainPage } from "./pages/main/MainPage";
+import ForwardPage from "./pages/main/pages/forward/ForwardPage";
 import {
     Alert,
     Box,
@@ -141,8 +142,14 @@ const router = createHashRouter([
                 element: <LoginPage />,
             },
             {
-                index: true,
+                path: "main",
                 element: <MainPage />,
+                children: [
+                    {
+                        path: "forward",
+                        element: <ForwardPage />,
+                    },
+                ],
             },
         ],
     },

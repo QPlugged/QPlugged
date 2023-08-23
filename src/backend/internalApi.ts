@@ -1,7 +1,5 @@
-import debug from "debug";
+import debug, { Debugger } from "debug";
 import EventEmitter from "eventemitter3";
-
-const logger = debug("internal-api");
 
 export class InternalApiImpl
     extends EventEmitter<InternalApi.Events>
@@ -10,14 +8,17 @@ export class InternalApiImpl
     private endpoint: Endpoint;
     private api: string;
     private initPromise: Promise<void>;
+    private logger: Debugger;
     constructor(endpoint: Endpoint, api: string, events: string[] = []) {
         super();
         this.api = api;
-        logger("注册 API: %s", this.api);
+        this.logger = debug(`iapi-${this.api}`);
+
+        this.logger("注册 API");
         this.endpoint = endpoint;
         this.endpoint.on("event", (data) => {
             if (data.api === this.api) {
-                logger("%s.on(%o) -> %o", this.api, data.cmd, data.payload);
+                this.logger("on(%o) -> %o", data.cmd, data.payload);
                 this.emit(data.cmd, data.payload);
             }
         });
@@ -35,9 +36,8 @@ export class InternalApiImpl
             args: args,
         };
         const res = await this.endpoint.send(data);
-        logger(
-            `res %s.%s(${new Array(args.length).fill("%o").join(", ")}) -> %o`,
-            this.api,
+        this.logger(
+            `%s(${new Array(args.length).fill("%o").join(", ")}) -> %o`,
             cmd.replaceAll("/", "."),
             ...args,
             res,
@@ -45,7 +45,7 @@ export class InternalApiImpl
         return res;
     }
     async listen(event?: string | undefined): Promise<void> {
-        logger("注册监听器 %s.%s", this.api, event);
+        this.logger("注册监听器 %s", event);
         const data: Endpoint.MessageWithoutId<Endpoint.Message.Call> = {
             type: "call",
             api: `${this.api}-register`,
@@ -55,7 +55,7 @@ export class InternalApiImpl
         await this.endpoint.send(data);
     }
     async unlisten(event?: string | undefined): Promise<void> {
-        logger("注销监听器 %s.%s", this.api, event);
+        this.logger("注销监听器 %s", event);
         const data: Endpoint.MessageWithoutId<Endpoint.Message.Call> = {
             type: "call",
             api: `${this.api}-unregister`,

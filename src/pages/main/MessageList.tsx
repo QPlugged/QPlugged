@@ -3,9 +3,16 @@ import ContextMenu from "../../components/ContextMenu";
 import RemoteAvatar from "../../components/RemoteAvatar";
 import RemoteFixedSizeImage from "../../components/RemoteFixedSizeImage";
 import Scrollbar from "../../components/Scrollbar";
-import ChatBox from "./ChatBox";
 import { css } from "@emotion/react";
-import { ArrowDownward, Close, Download, Folder } from "@mui/icons-material";
+import {
+    ArrowDownward,
+    Close,
+    CopyAll,
+    Done,
+    Download,
+    Folder,
+    Share,
+} from "@mui/icons-material";
 import {
     Box,
     Button,
@@ -13,13 +20,16 @@ import {
     Fab,
     Grow,
     Link,
+    ListItemIcon,
+    ListItemText,
     Menu,
     MenuItem,
     Stack,
     Typography,
     useColorScheme,
 } from "@mui/material";
-import { dirname } from "@tauri-apps/api/path";
+import { dirname, extname, join, tempDir } from "@tauri-apps/api/path";
+import { writeBinaryFile } from "@tauri-apps/plugin-fs";
 import { open } from "@tauri-apps/plugin-shell";
 import dayjs from "dayjs";
 import equal from "fast-deep-equal";
@@ -27,16 +37,22 @@ import hljs from "highlight.js";
 import { atom, useAtom } from "jotai";
 import Lottie from "lottie-react";
 import MarkdownIt from "markdown-it";
+import { escapeHtml } from "markdown-it/lib/common/utils";
+import { nanoid } from "nanoid";
 import prettyBytes from "pretty-bytes";
 import {
     Fragment,
+    forwardRef,
     useCallback,
     useContext,
     useEffect,
+    useImperativeHandle,
     useMemo,
     useRef,
     useState,
 } from "react";
+import { useInView } from "react-intersection-observer";
+import { useNavigate } from "react-router-dom";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
 type JumpToMessageFunc = (message: Message) => Promise<void>;
@@ -177,9 +193,17 @@ function MessageItemElementText({
 
     return (
         <>
+            {/* rome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
             <span
                 // rome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
                 dangerouslySetInnerHTML={{ __html: html }}
+                onClick={(event) => {
+                    const element = event.target as HTMLLinkElement;
+                    if (element.tagName === "A" && element.href) {
+                        event.preventDefault();
+                        open(element.href);
+                    }
+                }}
                 css={{
                     "& a": {
                         margin: 0,
@@ -235,7 +259,6 @@ function MessageItemElementMention({
             <Link
                 component="button"
                 underline="hover"
-                paddingLeft={""}
                 paddingRight={1}
                 onClick={onClick}
                 sx={{ verticalAlign: "inherit" }}
@@ -539,6 +562,8 @@ function MessageItem({
     message,
     nextMessage,
     highlighted,
+    selected,
+    onSelect,
     entity,
     avatar,
     loggedInAccount,
@@ -552,6 +577,8 @@ function MessageItem({
     message: Message;
     nextMessage?: Message;
     highlighted: boolean;
+    selected: boolean;
+    onSelect: () => void;
     entity: Entity;
     avatar: string;
     loggedInAccount: Account;
@@ -582,7 +609,7 @@ function MessageItem({
         [isLastMessageSent, isSelf],
     );
     const showAvatarPlaceholder = useMemo(
-        () => !isLastMessageSent && !isSelf,
+        () => !isSelf,
         [isLastMessageSent, isSelf],
     );
     const showName = useMemo(
@@ -607,6 +634,7 @@ function MessageItem({
             message.elements[0].type === "image",
         [message],
     );
+    const { ref: rootRef, inView, entry } = useInView({ threshold: 0.99 });
 
     const RADIUS_BIG = 12;
     const RADIUS_SMALL = 4;
@@ -628,14 +656,32 @@ function MessageItem({
                 "&:hover .message-item-time": {
                     opacity: 1,
                 },
+                background: selected
+                    ? "rgba(var(--mui-palette-primary-mainChannel) / var(--mui-palette-action-selectedOpacity))"
+                    : undefined,
             }}
             onContextMenu={handleContextMenu}
+            onClick={onSelect}
+            ref={rootRef}
         >
-            {showAvatar && (
-                <RemoteAvatar name={senderName} file={avatar} size={32} />
+            {showAvatarPlaceholder && (
+                <RemoteAvatar
+                    name={senderName}
+                    file={avatar}
+                    size={32}
+                    sx={{
+                        position: "sticky",
+                        bottom: 12,
+                        opacity:
+                            (!inView &&
+                                entry &&
+                                entry.boundingClientRect.bottom > 0) ||
+                            showAvatar
+                                ? 1
+                                : 0,
+                    }}
+                />
             )}
-            {showAvatarPlaceholder && <Box width={32} flexShrink={0} />}
-
             <Stack
                 direction="column"
                 bgcolor={
@@ -665,28 +711,43 @@ function MessageItem({
                             ? RADIUS_BIG
                             : RADIUS_SMALL
                         : RADIUS_BIG,
+                    pointerEvents: selected ? "none" : "auto",
+                    userSelect: selected ? "none" : "auto",
                 }}
                 maxWidth="60%"
                 overflow="hidden"
                 position="relative"
             >
-                {showName && (
-                    <Typography
-                        position="absolute"
-                        left={0}
-                        right={0}
-                        top={0}
-                        color="primary.main"
-                        variant="body2"
-                        fontSize={13}
-                        padding={1}
-                        overflow="hidden"
-                        textOverflow="ellipsis"
-                        whiteSpace="nowrap"
-                    >
-                        {senderName}
-                    </Typography>
-                )}
+                <Typography
+                    position="absolute"
+                    left={0}
+                    right={0}
+                    top={0}
+                    color="primary.main"
+                    variant="body2"
+                    fontSize={13}
+                    padding={1}
+                    overflow="hidden"
+                    textOverflow="ellipsis"
+                    whiteSpace="nowrap"
+                    aria-hidden="true"
+                    sx={{
+                        userSelect: "none",
+                        opacity: showName ? 1 : 0,
+                        pointerEvents: "none",
+                    }}
+                >
+                    {senderName}
+                </Typography>
+                <Typography
+                    position="absolute"
+                    left={0}
+                    top={0}
+                    overflow="hidden"
+                    sx={{ opacity: 0, pointerEvents: "none" }}
+                >
+                    {`${senderName}:`}
+                </Typography>
                 <Box
                     color={isSelf ? "message.self.text" : "message.others.text"}
                     padding={onlyHaveImage ? 0 : 1.25}
@@ -760,7 +821,11 @@ function MessageItem({
                 alignItems="center"
                 justifyContent="center"
                 color="text.secondary"
-                sx={{ opacity: 0, transition: "opacity 0.1s ease" }}
+                sx={{
+                    opacity: 0,
+                    transition: "opacity 0.1s ease",
+                    userSelect: "none",
+                }}
             >
                 {timeStr}
             </Stack>
@@ -771,8 +836,20 @@ function MessageItem({
 const START_INDEX = Math.round(Number.MAX_SAFE_INTEGER / 2);
 const MESSAGE_COUNT = 50;
 
-export default function MessageList({ entity }: { entity: Entity }) {
+export interface MessageListHandle {
+    scrollToBottom: (isImmediately?: boolean) => void;
+}
+
+const MessageList = forwardRef<
+    MessageListHandle,
+    {
+        entity: Entity;
+        selectedMessages: Map<string, Message>;
+        onSelectMessages: (messages: Map<string, Message>) => void;
+    }
+>(({ entity, selectedMessages, onSelectMessages }, ref) => {
     const api = useContext(ApiContext);
+    const navigate = useNavigate();
     const listRef = useRef<VirtuosoHandle>(null);
     const [authData, setAuthData] = useState<Account>();
     const [faceResourceDir, setFaceResourceDir] = useState<string>();
@@ -780,7 +857,7 @@ export default function MessageList({ entity }: { entity: Entity }) {
     const [messages, setMessages] = useState<Map<string, Message>>(new Map());
     const [messagesId, setMessagesId] = useState<string[]>([]);
     const [highlightedMessageId, setHighlightedMessageId] = useState<string>();
-    const [contextMenuMessageId, setContextMenuMessageId] = useState<string>();
+    const [selectionMode, setSelectionMode] = useState<boolean>(false);
     const [avatars, setAvatars] = useState<Map<string, string>>(new Map());
     const [atTop, setAtTop] = useState<boolean>(false);
     const [atBottom, setAtBottom] = useState<boolean>(true);
@@ -882,6 +959,166 @@ export default function MessageList({ entity }: { entity: Entity }) {
         });
     }, []);
 
+    const menuCopy = useCallback(async () => {
+        if (!selectedMessages) return;
+        const content: [Message, [string, string][]][] = await Promise.all(
+            [...selectedMessages].map(
+                async ([_, message]) =>
+                    [
+                        message,
+                        await Promise.all(
+                            message.elements.map(async (element) => {
+                                let child = "";
+                                let textChild = "";
+                                if (element.type === "reply") {
+                                    const text = element.sourceMessageText;
+                                    const sourceMessage = (
+                                        await api.messaging.getPreviousMessagesBySeq(
+                                            message.entity,
+                                            7,
+                                            element.sourceMessageSeq,
+                                            false,
+                                        )
+                                    )?.[0];
+                                    child = `<blockquote>${escapeHtml(
+                                        `[回复] ${
+                                            sourceMessage
+                                                ? `${
+                                                      sourceMessage.sender
+                                                          .memberName ||
+                                                      sourceMessage.sender.name
+                                                  }: `
+                                                : ""
+                                        }${text}`,
+                                    )}</blockquote><br>`;
+                                    textChild = `[回复] ${element.sourceMessageText}\n`;
+                                } else if (element.type === "revoke") {
+                                    const text = element.isRevokedBySelf
+                                        ? `${
+                                              element.sender.memberName ||
+                                              element.sender.name
+                                          } 撤回了一条消息`
+                                        : `${
+                                              element.operator.memberName ||
+                                              element.operator.name
+                                          } 撤回了 ${
+                                              element.sender.memberName ||
+                                              element.sender.name
+                                          }`;
+                                    child = `<i>${escapeHtml(text)}</i>`;
+                                    textChild = text;
+                                } else if (element.type === "text") {
+                                    child = markdownIt.render(element.content);
+                                    textChild = element.content;
+                                } else if (element.type === "mention") {
+                                    const text = element.content;
+                                    child = escapeHtml(text);
+                                    textChild = text;
+                                } else if (element.type === "image") {
+                                    const file = await element.progress;
+                                    const data = await api.fs.readBinaryFile(
+                                        file,
+                                    );
+                                    const temp = await join(
+                                        await tempDir(""),
+                                        `${nanoid()}.${await extname(file)}`,
+                                    );
+                                    writeBinaryFile(temp, data);
+                                    child = `<img src="${temp}" alt="">`;
+                                    textChild = "[图片]";
+                                } else if (element.type === "face") {
+                                    const text = "[动画表情]";
+                                    child = escapeHtml(text);
+                                    textChild = text;
+                                } else if (element.type === "file") {
+                                    const text = `[文件: ${element.name}]`;
+                                    child = escapeHtml(text);
+                                    textChild = text;
+                                } else if (element.type === "raw") {
+                                    const text = `[不支持渲染此元素: ${JSON.stringify(
+                                        element.raw,
+                                    )}]`;
+                                    child = escapeHtml(text);
+                                    textChild = text;
+                                }
+                                return [child, textChild];
+                            }),
+                        ),
+                    ] as [Message, [string, string][]],
+            ),
+        );
+        const html = content
+            .map(
+                ([message, elements]) =>
+                    `<p>${escapeHtml(
+                        `${message.sender.memberName || message.sender.name}:`,
+                    )}</p><p>${elements.map(([html]) => html).join("")}</p>`,
+            )
+            .join("");
+        const text = content
+            .map(
+                ([message, elements]) =>
+                    `${
+                        message.sender.memberName || message.sender.name
+                    }:\n${elements.map(([_, text]) => text).join("")}`,
+            )
+            .join("\n\n");
+        await navigator.clipboard.write([
+            new ClipboardItem({
+                "text/html": new Blob([html], { type: "text/html" }),
+                "text/plain": new Blob([text], { type: "text/plain" }),
+            }),
+        ]);
+        // const selection = window.getSelection();
+        // selection?.removeAllRanges();
+        // const range = document.createRange();
+        // let isFirst = true;
+        // for (const { id } of selectedMessages.sort(
+        //     (a, b) => a.timestamp - b.timestamp,
+        // )) {
+        //     const contextElement = messageContentElementsRef.current.get(id);
+        //     if (!contextElement) continue;
+
+        //     if (isFirst)
+        //         range.setStartBefore(
+        //             contextElement.firstElementChild!.nextElementSibling!,
+        //         );
+        //     isFirst = false;
+
+        //     range.setEndAfter(
+        //         contextElement.firstElementChild!.nextElementSibling!
+        //             .nextElementSibling!,
+        //     );
+        // }
+        // selection?.addRange(range);
+        // document.execCommand("copy");
+        // selection?.removeAllRanges();
+    }, [api, selectedMessages]);
+
+    const menuForward = useCallback(() => {
+        navigate("forward", {
+            state: {
+                messages: [...selectedMessages].map(([id, message]) => [
+                    message.entity,
+                    id,
+                ]),
+                fromEntity: entity,
+            },
+        });
+    }, [selectedMessages]);
+
+    const menuSelect = useCallback(() => {
+        setSelectionMode(!selectionMode && selectedMessages.size === 1);
+    }, [selectedMessages, selectionMode]);
+
+    useImperativeHandle(
+        ref,
+        () => ({
+            scrollToBottom: scrollToBottom,
+        }),
+        [scrollToBottom],
+    );
+
     useEffect(() => {
         let tag: HTMLElement;
         (async () => {
@@ -919,6 +1156,7 @@ export default function MessageList({ entity }: { entity: Entity }) {
             setAuthData(authData);
             setFaceResourceDir(faceResourceDir);
             setLottieResourceDir(lottieResourceDir);
+            setLoading(false);
         })();
     }, [api]);
 
@@ -980,7 +1218,8 @@ export default function MessageList({ entity }: { entity: Entity }) {
         setAtTop(false);
         setAtBottom(true);
         setFirstItemIndex(START_INDEX);
-        setLoading(false);
+        onSelectMessages(new Map());
+        setSelectionMode(false);
         api.messaging.switchToEntity(entity);
     }, [entity, api]);
 
@@ -989,110 +1228,168 @@ export default function MessageList({ entity }: { entity: Entity }) {
     }, [entity, fetchMoreMessages, scrollToBottom, loading]);
 
     return (
-        <Stack width="100%" height="100%" direction="column">
-            <ContextMenu
-                menu={(props, closeContextMenu) => (
-                    <Menu {...props}>
-                        <MenuItem onClick={closeContextMenu}>
-                            {contextMenuMessageId}
-                        </MenuItem>
-                    </Menu>
-                )}
-            >
-                {(handleContextMenu, closeContextMenu) => (
-                    <Box position="relative" flex={1}>
-                        {!loading ? (
-                            <Virtuoso
-                                ref={listRef}
-                                components={{
-                                    Scroller: Scrollbar,
-                                }}
-                                css={css({ width: "100%", height: "100%" })}
-                                increaseViewportBy={{ top: 800, bottom: 800 }}
-                                firstItemIndex={firstItemIndex}
-                                initialTopMostItemIndex={MESSAGE_COUNT - 1}
-                                startReached={() => fetchMoreMessages()}
-                                atBottomStateChange={(atBottom) =>
-                                    setAtBottom(atBottom)
-                                }
-                                data={messagesId}
-                                isScrolling={(isScrolling) => {
-                                    if (isScrolling) closeContextMenu();
-                                }}
-                                itemContent={(_, id) => {
-                                    const message = messages.get(id)!;
+        <ContextMenu
+            menu={(props, closeContextMenu) => (
+                <Menu {...props}>
+                    <MenuItem
+                        onClick={() => {
+                            menuCopy();
+                            closeContextMenu();
+                        }}
+                    >
+                        <ListItemIcon>
+                            <CopyAll />
+                        </ListItemIcon>
+                        <ListItemText>复制</ListItemText>
+                    </MenuItem>
+                    <MenuItem
+                        onClick={() => {
+                            menuForward();
+                            closeContextMenu();
+                        }}
+                    >
+                        <ListItemIcon>
+                            <Share />
+                        </ListItemIcon>
+                        <ListItemText>转发</ListItemText>
+                    </MenuItem>
+                    <MenuItem
+                        onClick={() => {
+                            menuSelect();
+                            closeContextMenu();
+                        }}
+                    >
+                        <ListItemIcon>
+                            <Done />
+                        </ListItemIcon>
+                        <ListItemText>
+                            {!selectionMode ? "选择" : "取消选择"}
+                        </ListItemText>
+                    </MenuItem>
+                </Menu>
+            )}
+        >
+            {(handleContextMenu, closeContextMenu) => (
+                <Box position="relative" flex={1} className="message-list">
+                    {!loading ? (
+                        <Virtuoso
+                            ref={listRef}
+                            components={{
+                                Scroller: Scrollbar,
+                            }}
+                            css={css({
+                                width: "100%",
+                                height: "100%",
+                            })}
+                            increaseViewportBy={{ top: 800, bottom: 800 }}
+                            firstItemIndex={firstItemIndex}
+                            initialTopMostItemIndex={MESSAGE_COUNT - 1}
+                            startReached={() => fetchMoreMessages()}
+                            atBottomStateChange={(atBottom) =>
+                                setAtBottom(atBottom)
+                            }
+                            data={messagesId}
+                            isScrolling={(isScrolling) => {
+                                if (isScrolling) closeContextMenu();
+                            }}
+                            itemContent={(_, id) => {
+                                const message = messages.get(id)!;
+                                const selected =
+                                    selectionMode && selectedMessages.has(id);
 
-                                    return (
-                                        message && (
-                                            <MessageItem
-                                                lastMessage={messages.get(
-                                                    messagesId[
-                                                        messagesId.indexOf(id) -
-                                                            1
-                                                    ],
-                                                )}
-                                                message={message}
-                                                nextMessage={messages.get(
-                                                    messagesId[
-                                                        messagesId.indexOf(id) +
-                                                            1
-                                                    ],
-                                                )}
-                                                highlighted={
-                                                    highlightedMessageId === id
-                                                }
-                                                entity={entity}
-                                                avatar={
-                                                    avatars.get(
-                                                        message.sender.uid,
-                                                    )!
-                                                }
-                                                loggedInAccount={authData!}
-                                                faceResourceDir={
-                                                    faceResourceDir!
-                                                }
-                                                lottieResourceDir={
-                                                    lottieResourceDir!
-                                                }
-                                                jumpToMessage={jumpToMessage}
-                                                showProfile={() => undefined}
-                                                handleContextMenu={(event) => {
-                                                    setContextMenuMessageId(id);
-                                                    handleContextMenu(event);
-                                                }}
-                                            />
-                                        )
-                                    );
-                                }}
-                            />
-                        ) : (
-                            <Box
-                                position="absolute"
-                                left="50%"
-                                top="50%"
-                                sx={{ transform: "translate(-50%,-50%)" }}
-                            >
-                                <CircularProgress />
-                            </Box>
-                        )}
-                        <Grow in={!atBottom}>
-                            <Fab
-                                color="primary"
-                                size="small"
-                                sx={{
-                                    position: "absolute",
-                                    right: 12,
-                                    bottom: 12,
-                                }}
-                                onClick={() => scrollToBottom(false)}
-                            >
-                                <ArrowDownward />
-                            </Fab>
-                        </Grow>
-                    </Box>
-                )}
-            </ContextMenu>
-            <ChatBox entity={entity} scrollToBottom={scrollToBottom} />
-        </Stack>
+                                return (
+                                    message && (
+                                        <MessageItem
+                                            lastMessage={messages.get(
+                                                messagesId[
+                                                    messagesId.indexOf(id) - 1
+                                                ],
+                                            )}
+                                            message={message}
+                                            nextMessage={messages.get(
+                                                messagesId[
+                                                    messagesId.indexOf(id) + 1
+                                                ],
+                                            )}
+                                            highlighted={
+                                                highlightedMessageId === id
+                                            }
+                                            selected={selected}
+                                            onSelect={() => {
+                                                if (selectionMode)
+                                                    if (selected) {
+                                                        selectedMessages.delete(
+                                                            id,
+                                                        );
+                                                        onSelectMessages(
+                                                            new Map(
+                                                                selectedMessages,
+                                                            ),
+                                                        );
+                                                    } else
+                                                        onSelectMessages(
+                                                            new Map(
+                                                                selectedMessages.set(
+                                                                    id,
+                                                                    message,
+                                                                ),
+                                                            ),
+                                                        );
+                                            }}
+                                            entity={entity}
+                                            avatar={
+                                                avatars.get(message.sender.uid)!
+                                            }
+                                            loggedInAccount={authData!}
+                                            faceResourceDir={faceResourceDir!}
+                                            lottieResourceDir={
+                                                lottieResourceDir!
+                                            }
+                                            jumpToMessage={jumpToMessage}
+                                            showProfile={() => undefined}
+                                            handleContextMenu={(event) => {
+                                                if (!selectionMode)
+                                                    onSelectMessages(
+                                                        new Map().set(
+                                                            id,
+                                                            message,
+                                                        ),
+                                                    );
+                                                handleContextMenu(event);
+                                            }}
+                                        />
+                                    )
+                                );
+                            }}
+                        />
+                    ) : (
+                        <Box
+                            position="absolute"
+                            left="50%"
+                            top="50%"
+                            sx={{ transform: "translate(-50%,-50%)" }}
+                        >
+                            <CircularProgress />
+                        </Box>
+                    )}
+                    <Grow in={!atBottom}>
+                        <Fab
+                            color="primary"
+                            size="small"
+                            sx={{
+                                position: "absolute",
+                                right: 12,
+                                bottom: 12,
+                            }}
+                            onClick={() => scrollToBottom(false)}
+                        >
+                            <ArrowDownward />
+                        </Fab>
+                    </Grow>
+                </Box>
+            )}
+        </ContextMenu>
     );
-}
+});
+
+export default MessageList;
