@@ -2,27 +2,65 @@ const compile = require("innosetup-compiler");
 const { get } = require("axios");
 const { zip } = require("compressing");
 const { F_OK } = require("fs");
-const { writeFile, mkdtemp, mkdir, access } = require("fs/promises");
+const { writeFile, mkdtemp, mkdir, access, copyFile, readFile } = require("fs/promises");
 const { tmpdir } = require("os");
 const { spawn } = require("child_process");
+const rcedit = require("rcedit");
 
-async function buildWinSetup() {
-    if (process.platform !== "win32") return;
-    let success = false;
+process.chdir(`${__dirname}/..`);
+const executableFileExt = process.platform === "win32" ? ".exe" : "";
+const target = process.env.TAURI_TARGET_TRIPLE;
+const platform = target.includes("windows")
+    ? "win32"
+    : target.includes("linux")
+    ? "linux"
+    : "unknown";
+
+async function buildWindowsSetup(executable) {
+    const version = require("../package.json").version;
+    const win32Version = version.split(".").slice(0, 3).join(".").split("-")[0];
+
+    await rcedit(executable, {
+        "file-version": win32Version,
+        "product-version": win32Version,
+        "version-string": { LegalCopyright: "Copyright 2023 The QPlugged Authors." },
+    });
+
+    await writeFile(
+        "./build/setup.generated.iss",
+        (await readFile("./build/setup.iss")).toString().replace("$APP_VERSION", version)
+    );
+
     for (let i = 0; i < 2; i++) {
         try {
             console.log("正在打包安装包 (Win32)");
-            await compile("./build/setup.iss");
-            success = true;
-            break;
+            await compile("./build/setup.generated.iss");
+            return;
         } catch {
             console.warn(`打包失败 (Win32)，正在进行第 ${i + 1} 次重试`);
         }
     }
-    if (!success) throw new Error("打包失败 (Win32)");
+    throw new Error("打包失败 (Win32)");
 }
 
-async function compressExecutable() {
+async function getExecutable() {
+    const possibleTargetPaths = [
+        `${target}/QPlugged${executableFileExt}`,
+        `QPlugged${executableFileExt}`,
+        `${target}/q-plugged${executableFileExt}`,
+        `q-plugged${executableFileExt}`,
+    ];
+    for (const targetPath of possibleTargetPaths) {
+        const path = `./src-tauri/target/release/${targetPath}`;
+        try {
+            await access(path, F_OK);
+            return path;
+        } catch {}
+    }
+    throw new Error("未找到输出的可执行文件");
+}
+
+async function compressExecutable(executable) {
     const upxVersion = "4.1.0";
     const upxPlatforms = {
         win32: "win32",
@@ -43,7 +81,6 @@ async function compressExecutable() {
         upxPlatforms[`${process.platform}_${process.arch}`] ||
         upxPlatforms[process.platform];
     const upxEdition = `upx-${upxVersion}-${upxPlatform}`;
-    const executableFileExt = process.platform === "win32" ? ".exe" : "";
 
     const upxDir = "./.tools/upx";
     mkdir(upxDir, { recursive: true });
@@ -52,66 +89,52 @@ async function compressExecutable() {
         await access(upxExecutable, F_OK);
     } catch {
         const upxArchiveFile = `${await mkdtemp(
-            `${tmpdir()}/qplugged-upx-`,
+            `${tmpdir()}/qplugged-upx-`
         )}/archive${upxArchiveFileExt}`;
         await writeFile(
             upxArchiveFile,
             (
                 await get(
                     `https://github.com/upx/upx/releases/download/v${upxVersion}/${upxEdition}${upxArchiveFileExt}`,
-                    { responseType: "arraybuffer" },
+                    { responseType: "arraybuffer" }
                 )
-            ).data,
+            ).data
         );
-        if (upxArchiveFileExt === ".zip")
-            await zip.uncompress(upxArchiveFile, upxDir);
+        if (upxArchiveFileExt === ".zip") await zip.uncompress(upxArchiveFile, upxDir);
         else
             await new Promise((resolve, reject) =>
                 spawn("tar", ["-xvJf", upxArchiveFile, "-C", upxDir], {
                     stdio: "inherit",
                 })
                     .on("exit", () => resolve())
-                    .on("error", (err) => reject(err)),
+                    .on("error", (err) => reject(err))
             );
     }
 
-    let executablePath;
-    const possibleTargetPaths = [
-        `${process.env.TAURI_TARGET_TRIPLE}/QPlugged${executableFileExt}`,
-        `QPlugged${executableFileExt}`,
-        `${process.env.TAURI_TARGET_TRIPLE}/q-plugged${executableFileExt}`,
-        `q-plugged${executableFileExt}`,
-    ];
-    for (const targetPath of possibleTargetPaths) {
-        const path = `./src-tauri/target/release/${targetPath}`;
-        try {
-            await access(path, F_OK);
-            executablePath = path;
-            break;
-        } catch {}
-    }
-    if (!executablePath) throw new Error("未找到输出的可执行文件");
-
-    let success = false;
     for (let i = 0; i < 2; i++) {
         try {
             console.log("正在压缩可执行文件");
             await new Promise((resolve, reject) =>
                 spawn(
                     upxExecutable,
-                    ["-9q", "--lzma", "--compress-icons=0", executablePath],
-                    { stdio: "inherit" },
+                    ["-9q", "--lzma", "--compress-icons=0", executable],
+                    { stdio: "inherit" }
                 )
                     .on("exit", () => resolve())
-                    .on("error", (err) => reject(err)),
+                    .on("error", (err) => reject(err))
             );
-            success = true;
-            break;
+            return;
         } catch {
             console.warn(`压缩失败，正在进行第 ${i + 1} 次重试`);
         }
     }
-    if (!success) throw new Error("压缩失败");
+    throw new Error("压缩失败");
 }
 
-compressExecutable().then(() => buildWinSetup());
+async function main() {
+    const executable = await getExecutable();
+    await compressExecutable(executable);
+    if (platform === "win32") await buildWindowsSetup(executable);
+}
+
+main();
