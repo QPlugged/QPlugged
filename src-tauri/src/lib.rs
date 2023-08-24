@@ -56,12 +56,13 @@ pub fn run() {
                     width: 0.,
                     height: 0.,
                 })?;
-                window.set_size(tauri::LogicalSize {
-                    width: DEFAULT_WIDTH,
-                    height: DEFAULT_HEIGHT,
-                })?;
                 window.set_decorations(true)?;
             }
+
+            window.set_size(tauri::LogicalSize {
+                width: DEFAULT_WIDTH,
+                height: DEFAULT_HEIGHT,
+            })?;
 
             Ok(())
         })
