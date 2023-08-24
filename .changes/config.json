@@ -1,0 +1,34 @@
+{
+    "gitSiteUrl": "https://github.com/QPlugged/QPlugged/",
+
+    "pkgManagers": {
+        "javascript": {
+            "version": true,
+            "getPublishedVersion": "git describe --tags `git rev-list --tags --max-count=1` | cut -dv -f2-",
+            "publish": [
+                "git tag v${ pkg.pkgFile.version } -f",
+                "git push --tags -f"
+            ]
+        }
+    },
+    "packages": {
+        "qplugged": {
+            "path": ".",
+            "manager": "javascript",
+            "assets": [
+                {
+                    "path": "./out/qplugged.exe",
+                    "name": "qplugged.exe"
+                },
+                {
+                    "path": "./out/qplugged_amd64.deb",
+                    "name": "qplugged_amd64.deb"
+                },
+                {
+                    "path": "./out/qplugged_amd64.AppImage",
+                    "name": "qplugged_amd64.AppImage"
+                }
+            ]
+        }
+    }
+}
