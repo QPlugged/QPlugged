@@ -32,3 +32,4 @@ dist-ssr
 
 out
 .tools
+*.generated.*
