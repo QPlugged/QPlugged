@@ -1,5 +1,11 @@
 # Changelog
 
+## \[0.6.1]
+
+- [`7e119cc`](https://github.com/QPlugged/QPlugged/commit/7e119cc4bc13617c9ae0b5e36d371b5e2035c7e0) 修复了消息列表有时无法加载更多历史消息的问题
+- [`90df2c7`](https://github.com/QPlugged/QPlugged/commit/90df2c75f8584882af7da7a44e5d018e12aeb6d1) 修复了 Windows 上的应用程序错误 0xc0000005
+- [`fc826f4`](https://github.com/QPlugged/QPlugged/commit/fc826f4224292c498c89179ab75ad584c6b34577) 移除了 JavaScript 混淆插件以加快构建速度和执行速度
+
 ## \[0.6.0]
 
 - [`e75b239`](https://github.com/QPlugged/QPlugged/commit/e75b2390916630cf08c7c5eae5f87141601df8d1) 支持 Linux
