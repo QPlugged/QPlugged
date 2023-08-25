@@ -1,14 +1,22 @@
 {
     "gitSiteUrl": "https://github.com/QPlugged/QPlugged/",
-
     "pkgManagers": {
         "javascript": {
             "version": true,
-            "getPublishedVersion": "git tag v${ pkgFile.version } 2> /dev/null || echo ${ pkgFile.version }",
-            "publish": [
-                "git tag v${ pkgFile.version } -f",
-                "git push --tags -f"
-            ]
+            "getPublishedVersion": {
+                "use": "fetch:check",
+                "options": {
+                    "url": "https://github.com/QPlugged/QPlugged/releases/tag/${ pkg.pkg }-${ pkg.pkgFile.version }"
+                }
+            },
+            "publish": true,
+            "postpublish": {
+                "use": "fetch:check",
+                "options": {
+                    "url": "https://github.com/QPlugged/QPlugged/releases/tag/${ pkg.pkg }-${ pkg.pkgFile.version }"
+                },
+                "retries": [5000, 5000, 5000]
+            }
         }
     },
     "packages": {
@@ -17,8 +25,8 @@
             "manager": "javascript",
             "assets": [
                 {
-                    "path": "./out/qplugged.exe",
-                    "name": "qplugged.exe"
+                    "path": "./out/qplugged-setup.exe",
+                    "name": "qplugged-setup.exe"
                 },
                 {
                     "path": "./out/qplugged_amd64.deb",
