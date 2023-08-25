@@ -634,7 +634,7 @@ function MessageItem({
             message.elements[0].type === "image",
         [message],
     );
-    const rootRef = useRef<HTMLButtonElement>(null);
+    const rootRef = useRef<HTMLDivElement>(null);
 
     const RADIUS_BIG = 12;
     const RADIUS_SMALL = 4;
@@ -646,7 +646,6 @@ function MessageItem({
     return (
         <Stack
             role="presentation"
-            component="button"
             bgcolor={highlighted ? "primary.main" : "transparent"}
             className="message-item"
             width="100%"
@@ -845,6 +844,7 @@ const MessageList = forwardRef<
 >(({ entity, selectedMessages, onSelectMessages }, ref) => {
     const api = useContext(ApiContext);
     const navigate = useNavigate();
+    const key = useMemo(() => JSON.stringify(entity), [entity]);
     const listRef = useRef<VirtuosoHandle>(null);
     const [authData, setAuthData] = useState<Account>();
     const [faceResourceDir, setFaceResourceDir] = useState<string>();
@@ -1185,6 +1185,7 @@ const MessageList = forwardRef<
                                 width: "100%",
                                 height: "100%",
                             })}
+                            key={key}
                             increaseViewportBy={{ top: 800, bottom: 800 }}
                             firstItemIndex={firstItemIndex}
                             initialTopMostItemIndex={MESSAGE_COUNT - 1}
