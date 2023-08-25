@@ -16,19 +16,13 @@ const platform = target.includes("windows")
     ? "linux"
     : "unknown";
 
-async function buildWindowsSetup(executable) {
-    const version = require("../package.json").version;
-    const win32Version = version.split(".").slice(0, 3).join(".").split("-")[0];
-
-    await rcedit(executable, {
-        "file-version": win32Version,
-        "product-version": win32Version,
-        "version-string": { LegalCopyright: "Copyright 2023 The QPlugged Authors." },
-    });
-
+async function buildWin32Setup(executable, version) {
     await writeFile(
         "./build/setup.generated.iss",
-        (await readFile("./build/setup.iss")).toString().replace("$APP_VERSION", version)
+        (await readFile("./build/setup.iss"))
+            .toString()
+            .replace("$APP_VERSION", version)
+            .replace("$APP_EXE", executable)
     );
 
     for (let i = 0; i < 2; i++) {
@@ -41,6 +35,16 @@ async function buildWindowsSetup(executable) {
         }
     }
     throw new Error("打包失败 (Win32)");
+}
+
+async function writeWin32Metadata(executable, version) {
+    const win32Version = version.split(".").slice(0, 3).join(".").split("-")[0];
+
+    await rcedit(executable, {
+        "file-version": win32Version,
+        "product-version": win32Version,
+        "version-string": { LegalCopyright: "Copyright 2023 The QPlugged Authors." },
+    });
 }
 
 async function getExecutable() {
@@ -132,9 +136,11 @@ async function compressExecutable(executable) {
 }
 
 async function main() {
+    const version = require("../package.json").version;
     const executable = await getExecutable();
+    if (platform === "win32") await writeWin32Metadata(executable, version);
     await compressExecutable(executable);
-    if (platform === "win32") await buildWindowsSetup(executable);
+    if (platform === "win32") await buildWin32Setup(executable, version);
 }
 
 main();

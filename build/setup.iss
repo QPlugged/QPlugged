@@ -3,6 +3,7 @@
 #define AppPublisher "The QPlugged Authors"
 #define AppCopyright "Copyright 2023 The QPlugged Authors."
 #define AppExeName "QPlugged.exe"
+#define AppExePath "$APP_EXE"
 
 [Setup]
 AppId={{EAD12F92-C708-4238-8360-3D2282DA1046}
