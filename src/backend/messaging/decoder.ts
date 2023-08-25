@@ -17,7 +17,6 @@ export function decodeReplyElement(element: MessageSendableElementReply) {
         },
     };
 }
-
 export function decodeTextElement(element: MessageSendableElementText) {
     return {
         elementType: 1,
@@ -123,4 +122,12 @@ export async function decodeElement(
         face: decodeFaceElement,
         raw: decodeRawElement,
     }[element.type](element as any);
+}
+
+export function decodeSticker(data: any, progress: Promise<string>): Sticker {
+    return {
+        id: data.resId,
+        progress: progress,
+        raw: data,
+    };
 }

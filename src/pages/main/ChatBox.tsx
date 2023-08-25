@@ -18,6 +18,7 @@ import { Attachment, EmojiEmotions, Send } from "@mui/icons-material";
 import { Box, IconButton, Stack } from "@mui/material";
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
+import FacePanel from "./FacePanel";
 
 function MentionCustomization(editor: Editor) {
     editor.conversion.for("upcast").elementToAttribute({
@@ -200,6 +201,7 @@ export default function ChatBox({
 
     return (
         <Stack
+            position="relative"
             margin={1}
             marginTop={0}
             direction="column"
@@ -214,6 +216,7 @@ export default function ChatBox({
                 },
             }}
         >
+            <FacePanel />
             <Stack direction="row" alignItems="flex-end" padding={0.5}>
                 <IconButton onClick={sendFile}>
                     <Attachment />

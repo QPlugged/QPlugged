@@ -1,5 +1,5 @@
 import { filterEntities } from "./converter";
-import { decodeElement, decodeEntity } from "./decoder";
+import { decodeElement, decodeEntity, decodeSticker } from "./decoder";
 import { encodeGroup, encodeMessage, encodeUser } from "./encoder";
 import { MessagingMediaImpl } from "./media";
 import EventEmitter from "eventemitter3";
@@ -222,6 +222,40 @@ export class MessagingImpl
         return avatars;
     }
 
+    async getStickerSet(
+        stickerCount: number,
+        direction: "forward" | "backward",
+        fromStickerId = "",
+        forced = false,
+    ): Promise<Sticker[]> {
+        const res = await this.nt.send(
+            "nodeIKernelMsgService/fetchFavEmojiList",
+            {
+                forceRefresh: forced,
+                count: stickerCount,
+                backwardFetch: direction === "backward",
+                resId: fromStickerId,
+            },
+            undefined,
+        );
+        const stickersToBeDownloaded = (res.emojiInfoList as any[])
+            .filter((item) => !item.isExist)
+            .map((item) => ({ md5: item.md5, id: item.resId, url: item.url }));
+        const downloadedStickers = this.media.downloadSticker(
+            1,
+            stickersToBeDownloaded,
+        );
+        return (res.emojiInfoList as any[]).map((item) => {
+            const idx = stickersToBeDownloaded.findIndex(
+                (value) => value.id === item.resId,
+            );
+            return decodeSticker(
+                item,
+                idx !== -1 ? downloadedStickers[idx] : item.emoPath,
+            );
+        });
+    }
+
     async getUserInfo(uid: string): Promise<User> {
         this.nt.send(
             "nodeIKernelProfileService/getUserDetailInfo",
@@ -270,7 +304,7 @@ export class MessagingImpl
         });
     }
 
-    async getFriendsList(forced: boolean): Promise<User[]> {
+    async getFriendsList(forced = false): Promise<User[]> {
         this.nt.send(
             "nodeIKernelBuddyService/getBuddyList",
             { force_update: forced },
@@ -304,7 +338,7 @@ export class MessagingImpl
         );
     }
 
-    async getGroupsList(forced: boolean): Promise<Group[]> {
+    async getGroupsList(forced = false): Promise<Group[]> {
         this.nt.send(
             "nodeIKernelGroupService/getGroupList",
             { forceFetch: forced },

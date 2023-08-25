@@ -13,16 +13,22 @@ export class MessagingMediaImpl
         super();
         this.nt = nt;
         this.fs = fs;
+        const successHandler = () => (payload: any) => {
+            const id =
+                payload?.notifyInfo?.msgElementId || payload?.notifyInfo?.resId;
+            if (this.pendingDownloads[id]) {
+                this.emit("download-finish", id);
+                this.pendingDownloads[id](payload);
+                delete this.pendingDownloads[id];
+            }
+        };
         this.nt.on(
             "nodeIKernelMsgListener/onRichMediaDownloadComplete",
-            (payload: any) => {
-                const id = payload?.notifyInfo?.msgElementId;
-                if (this.pendingDownloads[id]) {
-                    this.emit("download-finish", id);
-                    this.pendingDownloads[id](payload);
-                    delete this.pendingDownloads[id];
-                }
-            },
+            successHandler,
+        );
+        this.nt.on(
+            "nodeIKernelMsgListener/onEmojiDownloadComplete",
+            successHandler,
         );
         this.nt.on(
             "nodeIKernelMsgListener/onRichMediaProgerssUpdate",
@@ -96,6 +102,32 @@ export class MessagingMediaImpl
             fileSubId: "",
             thumbFileSize: 750,
         };
+    }
+    public downloadSticker(
+        downloadType: number,
+        list: { md5: string; id: string; url: string }[],
+    ): Promise<string>[] {
+        this.nt.send(
+            "nodeIKernelMsgService/downloadEmojiPic",
+            {
+                defaultCnt: list.length,
+                emojiList: list.map((item) => ({
+                    md5: item.md5,
+                    resId: item.id,
+                    url: item.url,
+                })),
+                emojiType: downloadType,
+                extraData: new Map(),
+            },
+            undefined,
+        );
+        return list.map(
+            (item) =>
+                new Promise<string>((resolve) => {
+                    this.pendingDownloads[item.id] = (payload) =>
+                        resolve(payload.notifyInfo.path);
+                }),
+        );
     }
     public async downloadMedia(
         msgId: string,
