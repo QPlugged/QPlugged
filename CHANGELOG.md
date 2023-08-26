@@ -1,5 +1,10 @@
 # Changelog
 
+## \[0.6.2]
+
+- [`5b9f7ff`](https://github.com/QPlugged/QPlugged/commit/5b9f7ff9f1295537be562f61426ce1291e89ae96) covector ci 不应在非主分支运行
+- [`54d05ea`](https://github.com/QPlugged/QPlugged/commit/54d05eac81de250eb6ac488f29ec9b31c0d55435) 修复了消息内容选不中的问题
+
 ## \[0.6.1]
 
 - [`7e119cc`](https://github.com/QPlugged/QPlugged/commit/7e119cc4bc13617c9ae0b5e36d371b5e2035c7e0) 修复了消息列表有时无法加载更多历史消息的问题
