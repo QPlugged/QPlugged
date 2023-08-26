@@ -102,11 +102,13 @@ const RemoteFixedSizeImage = memo(
                     alt={alt}
                     css={css({
                         position: "absolute",
-                        inset: 0,
-                        width: "100%",
-                        height: "100%",
+                        left: "50%",
+                        top: "50%",
+                        maxWidth: "100%",
+                        maxHeight: "100%",
                         opacity: failed || !loaded ? 0 : 1,
                         zIndex: 1,
+                        transform: "translate(-50%,-50%)",
                     })}
                     onLoad={() => setLoaded(true)}
                     onError={() => setFailed(true)}
