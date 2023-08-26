@@ -96,7 +96,7 @@ type SelectedTab = "favourite" | "sysface" | "recent";
 const FacePanel = memo(({ open }: { open: boolean }) => {
     const [selectedTab, setSelectedTab] = useState<SelectedTab>("favourite");
     return (
-        <Box position="absolute" right={0} bottom={-7} width={60} height={100}>
+        <Box position="absolute" right={0} bottom={-7} width={60} height={60}>
             <Fade in={open}>
                 <Paper
                     elevation={12}
