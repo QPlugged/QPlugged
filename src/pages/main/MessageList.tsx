@@ -709,7 +709,7 @@ function MessageItem({
         [isLastMessageSent, isSelf],
     );
     const showAvatarPlaceholder = useMemo(
-        () => !showAvatar || isSelf,
+        () => !showAvatar && !isSelf,
         [isLastMessageSent, isSelf],
     );
     const showName = useMemo(
