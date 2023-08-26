@@ -1,3 +1,17 @@
+import { ApiContext } from "../../Api";
+import RemoteFixedSizeImage from "../../components/RemoteFixedSizeImage";
+import Scrollbar from "../../components/Scrollbar";
+import { css } from "@emotion/react";
+import { Favorite, History } from "@mui/icons-material";
+import {
+    Box,
+    Fade,
+    Paper,
+    Stack,
+    Tab,
+    Tabs,
+    Unstable_Grid2,
+} from "@mui/material";
 import {
     forwardRef,
     memo,
@@ -6,13 +20,7 @@ import {
     useEffect,
     useState,
 } from "react";
-import { ApiContext } from "../../Api";
 import { VirtuosoGrid } from "react-virtuoso";
-import { css } from "@emotion/react";
-import RemoteFixedSizeImage from "../../components/RemoteFixedSizeImage";
-import { Box, Paper, Stack, Tab, Tabs, Unstable_Grid2 } from "@mui/material";
-import Scrollbar from "../../components/Scrollbar";
-import { Favorite, History } from "@mui/icons-material";
 
 const StickerItem = memo(({ file }: { file: string | undefined }) => {
     return <RemoteFixedSizeImage width={55} height={55} file={file} />;
@@ -85,41 +93,48 @@ const StickerList = memo(() => {
 
 type SelectedTab = "favourite" | "sysface" | "recent";
 
-export default function FacePanel() {
+const FacePanel = memo(({ open }: { open: boolean }) => {
     const [selectedTab, setSelectedTab] = useState<SelectedTab>("favourite");
-
     return (
-        <Paper
-            elevation={6}
-            sx={{
-                width: 300,
-                height: 400,
-                position: "absolute",
-                right: 0,
-                bottom: "calc(100% + 5px)",
-                zIndex: 100,
-            }}
-        >
-            <Stack direction="column" width="100%" height="100%">
-                <Tabs
-                    value={selectedTab}
-                    onChange={(_, value) => setSelectedTab(value)}
+        <Box position="absolute" right={0} bottom={-7} width={60} height={100}>
+            <Fade in={open}>
+                <Paper
+                    elevation={12}
+                    sx={{
+                        position: "absolute",
+                        bottom: 60,
+                        right: 0,
+                        borderRadius: 2,
+                        width: 300,
+                        height: 400,
+                        overflow: "hidden",
+                        transformOrigin: "right bottom",
+                    }}
                 >
-                    <Tab
-                        icon={<History />}
-                        value="recent"
-                        aria-label="最近使用"
-                    />
-                    <Tab
-                        icon={<Favorite />}
-                        value="favourite"
-                        aria-label="收藏的贴纸"
-                    />
-                </Tabs>
-                <Box width="100%" height="100%">
-                    <StickerList />
-                </Box>
-            </Stack>
-        </Paper>
+                    <Stack direction="column" width="100%" height="100%">
+                        <Tabs
+                            value={open ? selectedTab : false}
+                            onChange={(_, value) => setSelectedTab(value)}
+                        >
+                            <Tab
+                                icon={<History />}
+                                value="recent"
+                                aria-label="最近使用"
+                            />
+                            <Tab
+                                icon={<Favorite />}
+                                value="favourite"
+                                aria-label="收藏的贴纸"
+                            />
+                        </Tabs>
+                        <Box width="100%" height="100%">
+                            <StickerList />
+                        </Box>
+                    </Stack>
+                </Paper>
+            </Fade>
+        </Box>
     );
-}
+});
+
+export default FacePanel;

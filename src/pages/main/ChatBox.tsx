@@ -1,5 +1,6 @@
 import { ApiContext } from "../../Api";
 import RemoteAvatar from "../../components/RemoteAvatar";
+import FacePanel from "./FacePanel";
 import { MessageListHandle } from "./MessageList";
 import { Autoformat } from "@ckeditor/ckeditor5-autoformat";
 import { Bold, Italic } from "@ckeditor/ckeditor5-basic-styles";
@@ -18,7 +19,6 @@ import { Attachment, EmojiEmotions, Send } from "@mui/icons-material";
 import { Box, IconButton, Stack } from "@mui/material";
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import FacePanel from "./FacePanel";
 
 function MentionCustomization(editor: Editor) {
     editor.conversion.for("upcast").elementToAttribute({
@@ -85,6 +85,7 @@ export default function ChatBox({
     );
     const [content, setContent] = useState<string>("");
     const isEmpty = useMemo(() => getIsEmpty(content), [content]);
+    const [facePanelOpen, setFacePanelOpen] = useState<boolean>(false);
     const [forceRemountEditor, setForceRemountEditor] = useState<number>(0);
 
     const sendMessage = useCallback(
@@ -206,7 +207,7 @@ export default function ChatBox({
             marginTop={0}
             direction="column"
             bgcolor="background.paper"
-            zIndex={10}
+            zIndex="calc(var(--mui-zIndex-fab) + 10)"
             boxShadow={3}
             borderRadius={2}
             sx={{
@@ -216,7 +217,6 @@ export default function ChatBox({
                 },
             }}
         >
-            <FacePanel />
             <Stack direction="row" alignItems="flex-end" padding={0.5}>
                 <IconButton onClick={sendFile}>
                     <Attachment />
@@ -372,9 +372,25 @@ export default function ChatBox({
                         onChange={(_, editor) => setContent(editor.getData())}
                     />
                 </Box>
-                <IconButton>
-                    <EmojiEmotions />
-                </IconButton>
+                <Box
+                    onMouseLeave={(e) => {
+                        console.log(e);
+                        requestAnimationFrame(() => setFacePanelOpen(false));
+                    }}
+                >
+                    <FacePanel open={facePanelOpen} />
+                    <IconButton
+                        onClick={() => {
+                            setFacePanelOpen(
+                                (oldFacePanelOpen) => !oldFacePanelOpen,
+                            );
+                        }}
+                        onMouseEnter={() => setFacePanelOpen(true)}
+                    >
+                        <EmojiEmotions />
+                    </IconButton>
+                </Box>
+
                 {!isEmpty && (
                     <IconButton
                         color="primary"
