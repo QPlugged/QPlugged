@@ -12,6 +12,7 @@ import {
     Done,
     Download,
     Folder,
+    PlayArrow,
     Share,
 } from "@mui/icons-material";
 import {
@@ -268,24 +269,32 @@ function MessageItemElementMention({
     );
 }
 
+function getLimitedSize(
+    width: number,
+    height: number,
+    maxSize: number,
+): [number, number] {
+    let w = width;
+    let h = height;
+    if (w > maxSize) {
+        h = (h / w) * maxSize;
+        w = maxSize;
+    }
+    if (h > maxSize) {
+        w = (w / h) * maxSize;
+        h = maxSize;
+    }
+    return [w, h];
+}
+
 function MessageItemElementImage({
     element,
     onlyHaveImage,
 }: { element: MessageNonSendableElementImage; onlyHaveImage: boolean }) {
-    const MAX_SIZE = 300;
-    const [width, height] = useMemo<[number, number]>(() => {
-        let width = element.width;
-        let height = element.height;
-        if (width > MAX_SIZE) {
-            height = (height / width) * MAX_SIZE;
-            width = MAX_SIZE;
-        }
-        if (height > MAX_SIZE) {
-            width = (width / height) * MAX_SIZE;
-            height = MAX_SIZE;
-        }
-        return [width, height];
-    }, [element]);
+    const [width, height] = useMemo<[number, number]>(
+        () => getLimitedSize(element.width, element.height, 300),
+        [element],
+    );
     const [file, setFile] = useState<string>();
 
     useEffect(() => {
@@ -325,6 +334,13 @@ function MessageItemElementFile({
         [element, downloadQueue],
     );
     const [downloaded, setDownloaded] = useState<boolean>();
+    const [width, height] = useMemo<[number, number]>(
+        () =>
+            element.thumb
+                ? getLimitedSize(element.thumb.width, element.thumb.height, 300)
+                : [0, 0],
+        [element],
+    );
 
     const updateDownloadedState = useCallback(async () => {
         const downloaded = await api.fs.pathExist(element.file);
@@ -365,8 +381,12 @@ function MessageItemElementFile({
 
     const openFileInFolder = useCallback(async () => {
         if ((await updateDownloadedState()) !== true) return;
-        open(await dirname(element.file));
+        await open(await dirname(element.file));
     }, [downloaded, element, updateDownloadedState]);
+
+    const playMedia = useCallback(async () => {
+        await open(element.file);
+    }, [element]);
 
     useEffect(() => {
         const listener = (
@@ -379,13 +399,13 @@ function MessageItemElementFile({
                 (oldDownloadQueue) =>
                     new Map(oldDownloadQueue.set(element.id, [current, total])),
             );
-            updateDownloadedState();
+            setDownloaded(true);
         };
         api.messaging.media.on("download-progress-update", listener);
         return () => {
             api.messaging.media.off("download-progress-update", listener);
         };
-    }, [api, element, updateDownloadedState]);
+    }, [api, element]);
 
     useEffect(() => {
         const listener = (elementId: string) => {
@@ -406,33 +426,113 @@ function MessageItemElementFile({
         updateDownloadedState();
     }, [updateDownloadedState]);
 
-    return (
+    const downloadBtnAction = useMemo(
+        () =>
+            downloaded
+                ? element.fileType === "video"
+                    ? playMedia
+                    : openFileInFolder
+                : progress
+                ? cancelDownloadFile
+                : downloadFile,
+        [
+            element,
+            downloaded,
+            openFileInFolder,
+            progress,
+            cancelDownloadFile,
+            downloadFile,
+        ],
+    );
+    const downloadBtnText = useMemo(
+        () =>
+            downloaded
+                ? element.fileType === "video"
+                    ? "播放视频"
+                    : "打开文件所在文件夹"
+                : progress
+                ? "取消下载文件"
+                : "下载文件",
+        [element, downloaded, progress],
+    );
+    const downloadBtnIcon = useMemo(
+        () =>
+            downloaded ? (
+                element.fileType === "video" ? (
+                    <PlayArrow />
+                ) : (
+                    <Folder />
+                )
+            ) : progress ? (
+                <Close />
+            ) : (
+                <Download />
+            ),
+        [element, downloaded, progress],
+    );
+
+    return element.thumb ? (
+        <Box position="relative">
+            <RemoteFixedSizeImage
+                file={element.thumb.file}
+                width={width}
+                height={height}
+            />
+            <Fab
+                size="medium"
+                color="primary"
+                aria-label={downloadBtnText}
+                onClick={downloadBtnAction}
+                sx={{
+                    position: "absolute",
+                    left: "50%",
+                    top: "50%",
+                    transform: "translate(-50%,-50%)",
+                }}
+            >
+                {downloadBtnIcon}
+            </Fab>
+            <Box
+                position="absolute"
+                left={0}
+                bottom={0}
+                right={0}
+                height={50}
+                zIndex={1}
+                sx={{
+                    background:
+                        "linear-gradient(transparent,var(--mui-palette-grey-600))",
+                }}
+            />
+            <Typography
+                position="absolute"
+                right={10}
+                bottom={10}
+                variant="body1"
+                component="span"
+                color="text.secondary"
+                fontSize={12}
+                zIndex={2}
+            >
+                {size}
+            </Typography>
+        </Box>
+    ) : (
         <Stack
             direction="row"
             alignItems="center"
             gap={2}
             minWidth={200}
-            padding={0.5}
+            padding={1.75}
         >
             <Box position="relative">
                 <Fab
                     size="medium"
                     color="secondary"
-                    onClick={
-                        downloaded
-                            ? openFileInFolder
-                            : progress
-                            ? cancelDownloadFile
-                            : downloadFile
-                    }
+                    onClick={downloadBtnAction}
+                    aria-label={downloadBtnText}
                 >
-                    {downloaded ? (
-                        <Folder />
-                    ) : progress ? (
-                        <Close />
-                    ) : (
-                        <Download />
-                    )}
+                    {downloadBtnIcon}
                     <Grow in={progress === true}>
                         <Box
                             position="absolute"
@@ -631,7 +731,8 @@ function MessageItem({
     const onlyHaveImage = useMemo(
         () =>
             message.elements.length === 1 &&
-            message.elements[0].type === "image",
+            (message.elements[0].type === "image" ||
+                message.elements[0].type === "file"),
         [message],
     );
     const rootRef = useRef<HTMLDivElement>(null);
