@@ -712,36 +712,28 @@ function MessageItem({
                 overflow="hidden"
                 position="relative"
             >
-                <Typography
-                    position="absolute"
-                    left={0}
-                    right={0}
-                    top={0}
-                    color="primary.main"
-                    variant="body2"
-                    fontSize={13}
-                    padding={1}
-                    overflow="hidden"
-                    textOverflow="ellipsis"
-                    whiteSpace="nowrap"
-                    aria-hidden="true"
-                    sx={{
-                        userSelect: selectionMode ? "none" : "auto",
-                        opacity: showName ? 1 : 0,
-                        pointerEvents: selectionMode ? "none" : "auto",
-                    }}
-                >
-                    {senderName}
-                </Typography>
-                <Typography
-                    position="absolute"
-                    left={0}
-                    top={0}
-                    overflow="hidden"
-                    sx={{ opacity: 0, pointerEvents: "none" }}
-                >
-                    {`${senderName}:`}
-                </Typography>
+                {showName && (
+                    <Typography
+                        position="absolute"
+                        left={0}
+                        right={0}
+                        top={0}
+                        color="primary.main"
+                        variant="body2"
+                        fontSize={13}
+                        padding={1}
+                        overflow="hidden"
+                        textOverflow="ellipsis"
+                        whiteSpace="nowrap"
+                        sx={{
+                            userSelect: selectionMode ? "none" : "auto",
+                            opacity: showName ? 1 : 0,
+                            pointerEvents: selectionMode ? "none" : "auto",
+                        }}
+                    >
+                        {senderName}
+                    </Typography>
+                )}
                 <Box
                     color={isSelf ? "message.self.text" : "message.others.text"}
                     padding={onlyHaveImage ? 0 : 1.25}
