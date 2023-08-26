@@ -1,5 +1,10 @@
 # Changelog
 
+## \[0.7.0]
+
+- [`1ad56ef`](https://github.com/QPlugged/QPlugged/commit/1ad56ef8e82931bf1d0290289e9788095d2911e5)([#12](https://github.com/QPlugged/QPlugged/pull/12)) 添加了对视频的支持
+- [`6880ef0`](https://github.com/QPlugged/QPlugged/commit/6880ef067871bfd0df1711f1e5cf1c943869ec84) 修复了自己发送的消息后方有空隙的问题
+
 ## \[0.6.2]
 
 - [`5b9f7ff`](https://github.com/QPlugged/QPlugged/commit/5b9f7ff9f1295537be562f61426ce1291e89ae96) covector ci 不应在非主分支运行
