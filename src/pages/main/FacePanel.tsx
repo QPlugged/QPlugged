@@ -80,10 +80,7 @@ const StickerList = memo(() => {
                 Item: (props) => <Unstable_Grid2 {...props} />,
                 Scroller: Scrollbar,
             }}
-            endReached={() => {
-                console.log("trigger");
-                fetchMoreStickers();
-            }}
+            endReached={() => fetchMoreStickers()}
             itemContent={(_, sticker) => (
                 <StickerItem file={stickerFiles.get(sticker.id)} />
             )}

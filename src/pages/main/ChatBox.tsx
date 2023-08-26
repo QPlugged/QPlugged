@@ -372,12 +372,7 @@ export default function ChatBox({
                         onChange={(_, editor) => setContent(editor.getData())}
                     />
                 </Box>
-                <Box
-                    onMouseLeave={(e) => {
-                        console.log(e);
-                        requestAnimationFrame(() => setFacePanelOpen(false));
-                    }}
-                >
+                <Box onMouseLeave={() => setFacePanelOpen(false)}>
                     <FacePanel open={facePanelOpen} />
                     <IconButton
                         onClick={() => {
