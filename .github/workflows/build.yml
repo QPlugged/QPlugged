@@ -116,6 +116,7 @@ jobs:
         needs: ["build"]
         runs-on: ubuntu-latest
         timeout-minutes: 65
+        if: github.ref == 'refs/heads/main'
         permissions:
             contents: write
             pull-requests: write
