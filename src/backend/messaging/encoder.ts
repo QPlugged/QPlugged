@@ -92,13 +92,26 @@ export function encodeImageElement(
     };
 }
 
-export function encodeFileElement(ele: any): MessageNonSendableElementFile {
+export function encodeFileElement(
+    ele: any,
+    type: MessageElementFileType,
+): MessageNonSendableElementFile {
+    const element = ele.fileElement || ele.videoElement;
+    const thumb = element.thumbPath?.get(0);
     return {
         type: "file",
         id: ele.elementId,
-        name: ele.fileElement.fileName,
-        file: ele.fileElement.filePath,
-        size: parseInt(ele.fileElement.fileSize) || 0,
+        fileType: type,
+        name: element.fileName,
+        file: element.filePath,
+        size: parseInt(element.fileSize) || 0,
+        thumb: thumb
+            ? {
+                  file: thumb,
+                  width: element.thumbWidth,
+                  height: element.thumbHeight,
+              }
+            : undefined,
         raw: ele,
     };
 }
@@ -156,7 +169,8 @@ export function encodeMessage(raw: any, media: MessagingMedia): Message {
                         progress.push(element.progress!);
                         return element;
                     },
-                    3: encodeFileElement,
+                    3: (ele: any) => encodeFileElement(ele, "typical"),
+                    5: (ele: any) => encodeFileElement(ele, "video"),
                     6: encodeFaceElement,
                     7: encodeReplyElement,
                     8: { 1: encodeRevokeElement }[

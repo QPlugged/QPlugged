@@ -97,6 +97,7 @@ declare type MessageNonSendableElement =
     | MessageNonSendableElementMention
     | MessageNonSendableElementImage
     | MessageNonSendableElementFile
+    | MessageNonSendableElementVideo
     | MessageNonSendableElementFace
     | MessageNonSendableElementRaw;
 
@@ -198,6 +199,8 @@ declare interface MessageSendableElementImage
     file: string;
 }
 
+declare type MessageElementFileType = "typical" | "video";
+
 interface MessageCommonElementFile {
     type: "file";
     size: number;
@@ -207,7 +210,13 @@ interface MessageCommonElementFile {
 declare interface MessageNonSendableElementFile
     extends MessageNonSendableElementBase,
         MessageCommonElementFile {
+    fileType: MessageElementFileType;
     name: string;
+    thumb?: {
+        file: string;
+        width: number;
+        height: number;
+    };
 }
 
 declare interface MessageSendableElementFile
