@@ -18,6 +18,10 @@ type MessagingMediaEventEmitter =
     import("eventemitter3").EventEmitter<MessagingMediaEvents>;
 
 declare interface MessagingMedia extends MessagingMediaEventEmitter {
+    downloadSticker(
+        downloadType: number,
+        list: { md5: string; id: string; url: string }[],
+    ): Promise<string>[];
     downloadMedia(
         msgId: string,
         elementId: string,
@@ -68,10 +72,16 @@ declare interface Messaging extends MessagingEventEmitter {
         combine: boolean,
     ): Promise<void>;
     getAvatars(entities: Entity[]): Promise<Map<Entity, string>>;
+    getStickerSet(
+        stickerCount: number,
+        direction: "forward" | "backward",
+        fromStickerId?: string,
+        forced?: boolean,
+    ): Promise<Sticker[]>;
     getUserInfo(uid: string): Promise<User>;
     getGroupInfo(uid: string): Promise<Group>;
-    getFriendsList(forced: boolean): Promise<User[]>;
-    getGroupsList(forced: boolean): Promise<Group[]>;
+    getFriendsList(forced?: boolean): Promise<User[]>;
+    getGroupsList(forced?: boolean): Promise<Group[]>;
     getGroupMentionEveryoneConfig(
         uid: string,
     ): Promise<GroupMentionEveryoneConfig>;
@@ -264,6 +274,12 @@ declare interface MessageEntity {
     uid: string;
     name: string;
     memberName: string;
+}
+
+declare interface Sticker {
+    id: string;
+    progress: Promise<string> | string;
+    raw: any;
 }
 
 declare interface User extends Account {

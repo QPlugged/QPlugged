@@ -1,5 +1,6 @@
 import { ApiContext } from "../../Api";
 import RemoteAvatar from "../../components/RemoteAvatar";
+import FacePanel from "./FacePanel";
 import { MessageListHandle } from "./MessageList";
 import { Autoformat } from "@ckeditor/ckeditor5-autoformat";
 import { Bold, Italic } from "@ckeditor/ckeditor5-basic-styles";
@@ -84,6 +85,7 @@ export default function ChatBox({
     );
     const [content, setContent] = useState<string>("");
     const isEmpty = useMemo(() => getIsEmpty(content), [content]);
+    const [facePanelOpen, setFacePanelOpen] = useState<boolean>(false);
     const [forceRemountEditor, setForceRemountEditor] = useState<number>(0);
 
     const sendMessage = useCallback(
@@ -200,11 +202,12 @@ export default function ChatBox({
 
     return (
         <Stack
+            position="relative"
             margin={1}
             marginTop={0}
             direction="column"
             bgcolor="background.paper"
-            zIndex={10}
+            zIndex="calc(var(--mui-zIndex-fab) + 10)"
             boxShadow={3}
             borderRadius={2}
             sx={{
@@ -369,9 +372,20 @@ export default function ChatBox({
                         onChange={(_, editor) => setContent(editor.getData())}
                     />
                 </Box>
-                <IconButton>
-                    <EmojiEmotions />
-                </IconButton>
+                <Box onMouseLeave={() => setFacePanelOpen(false)}>
+                    <FacePanel open={facePanelOpen} />
+                    <IconButton
+                        onClick={() => {
+                            setFacePanelOpen(
+                                (oldFacePanelOpen) => !oldFacePanelOpen,
+                            );
+                        }}
+                        onMouseEnter={() => setFacePanelOpen(true)}
+                    >
+                        <EmojiEmotions />
+                    </IconButton>
+                </Box>
+
                 {!isEmpty && (
                     <IconButton
                         color="primary"
